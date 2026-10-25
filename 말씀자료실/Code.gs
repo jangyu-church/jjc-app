@@ -13,6 +13,8 @@ var KIND_NAME = { summary: '설교요약본', mokjang: '목장모임교재' };
 function doGet(e) {
   var p = (e && e.parameter) || {};
   migrate_();
+  if (p.api === 'latest') return latestApi_(String(p.callback || ''));
+  if (p.latest) return latestView_(String(p.latest));
   if (p.v) return viewHtml_(String(p.v));
   var t = HtmlService.createTemplateFromFile('Index');
   t.dataJson = JSON.stringify(publicWeeks_(readIndex_().weeks)).replace(/</g, '\\u003c');
@@ -32,8 +34,15 @@ function viewHtml_(id) {
   });
   if (!found) return HtmlService.createHtmlOutput('<p style="font:18px sans-serif;padding:24px">찾는 자료가 없습니다.</p>').setTitle('말씀 자료실');
   var html = DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8');
-  var back = '<a href="' + ScriptApp.getService().getUrl() + '" target="_top" style="position:sticky;top:0;z-index:99;display:block;' +
-    'background:#2f4858;color:#fff;font:600 15px/1.4 sans-serif;padding:12px 16px;text-decoration:none">← 말씀 자료실 목록</a>';
+  var url = ScriptApp.getService().getUrl();
+  var other = found.k === 'summary' ? 'mokjang' : 'summary';
+  var lk = 'color:#fff;text-decoration:none;padding:12px 16px;display:block';
+  var back = '<div style="position:sticky;top:0;z-index:99;display:flex;justify-content:space-between;align-items:center;' +
+    'background:#2f4858;font:600 15px/1.4 sans-serif">' +
+    '<a href="' + url + '" target="_top" style="' + lk + '">← 말씀 자료실</a>' +
+    (found.w[other] && found.w[other].html
+      ? '<a href="' + url + '?v=' + found.w[other].html + '" target="_top" style="' + lk + ';opacity:.9">' + (other === 'summary' ? '설교 요약본 보기 →' : '목장 교재 보기 →') + '</a>'
+      : '') + '</div>';
   var m = html.match(/<body[^>]*>/i);
   html = m ? html.replace(m[0], m[0] + back) : back + html;
   var title = (KIND_NAME[found.k] === '설교요약본' ? '설교 요약본' : '목장 모임 교재') + ' · ' + (found.w.title || '');
@@ -41,6 +50,67 @@ function viewHtml_(id) {
     .setTitle(title)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* ---------- 다른 앱에서 이번 주 자료 바로 열기 ----------
+ * ?latest=summary  → 가장 최근 설교 요약본
+ * ?latest=mokjang  → 가장 최근 목장 모임 교재
+ * ?api=latest&callback=함수이름 → 가장 최근 주의 날짜·제목·본문을 알려 줌 (목장관리 앱 등에서 사용)
+ */
+function latestWeek_(kind) {
+  var ws = readIndex_().weeks;
+  for (var i = 0; i < ws.length; i++) {
+    var w = ws[i];
+    if (!kind && (w.summary || w.mokjang)) return w;
+    if (kind && w[kind] && (w[kind].html || w[kind].pdf)) return w;
+  }
+  return null;
+}
+function latestView_(kind) {
+  if (kind !== 'summary' && kind !== 'mokjang') kind = 'mokjang';
+  var w = latestWeek_(kind);
+  if (!w) return HtmlService.createHtmlOutput('<p style="font:18px sans-serif;padding:24px">아직 올라온 자료가 없습니다.</p>').setTitle('말씀 자료실');
+  if (w[kind].html) return viewHtml_(w[kind].html);
+  var url = ScriptApp.getService().getUrl();
+  var pdf = 'https://drive.google.com/file/d/' + w[kind].pdf + '/view';
+  var name = kind === 'summary' ? '설교 요약본' : '목장 모임 교재';
+  var page = '<div style="font:17px/1.6 sans-serif;padding:32px 20px;max-width:520px;margin:0 auto;color:#23201c">' +
+    '<p style="margin:0 0 4px;color:#9a6a36;font-weight:700">' + esc_(w.date) + ' · ' + name + '</p>' +
+    '<h1 style="margin:0 0 16px;font-size:26px">' + esc_(w.title || '') + '</h1>' +
+    '<p>이 주 자료는 PDF로만 올라와 있습니다.</p>' +
+    '<p><a href="' + pdf + '" target="_blank" style="display:inline-block;background:#2f4858;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:700">PDF 열기</a></p>' +
+    '<p><a href="' + url + '" target="_top" style="color:#2f4858">말씀 자료실 목록 보기</a></p></div>';
+  return HtmlService.createHtmlOutput(page).setTitle(name + ' · ' + (w.title || ''))
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+function latestApi_(callback) {
+  var w = latestWeek_('');
+  var url = ScriptApp.getService().getUrl();
+  var out = { ok: !!w, url: url };
+  if (w) {
+    out.date = w.date; out.title = w.title || ''; out.ref = w.ref || '';
+    ['summary', 'mokjang'].forEach(function (k) {
+      var x = w[k];
+      out[k] = (x && (x.html || x.pdf)) ? { open: url + '?latest=' + k, pdf: x.pdf ? 'https://drive.google.com/file/d/' + x.pdf + '/view' : '' } : null;
+    });
+  }
+  var json = JSON.stringify(out);
+  if (/^[A-Za-z_$][\w$]{0,40}$/.test(callback)) {
+    return ContentService.createTextOutput(callback + '(' + json + ');').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+function esc_(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+/* 목록 화면 안에서 휴대폰 화면 자료를 펼쳐 보여 줄 때 씁니다. */
+function getHtml(id) {
+  var ok = false;
+  readIndex_().weeks.forEach(function (w) {
+    ['summary', 'mokjang'].forEach(function (k) { if (w[k] && w[k].html === id) ok = true; });
+  });
+  if (!ok) throw new Error('찾는 자료가 없습니다.');
+  return DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8');
 }
 
 /* ---------- 자료목록 ---------- */

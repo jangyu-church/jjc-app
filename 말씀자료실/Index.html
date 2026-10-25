@@ -250,7 +250,7 @@ body{font-size:17px}
     if (!big) acts.append(el('span','k', k === 'summary' ? '요약본' : '목장 교재'));
     var c = big ? 'btn main' : 'lk' + (k === 'mokjang' ? ' gold' : '');
     var c2 = big ? 'btn' : 'lk' + (k === 'mokjang' ? ' gold' : '');
-    if (x.html) acts.append(link(big ? '휴대폰 화면으로 보기' : '보기', c, viewUrl(x.html), false));
+    if (x.html){ var hb = el('button', c, big ? '휴대폰 화면으로 보기' : '보기'); hb.type = 'button'; hb.addEventListener('click', function(){ openReader(w, k); }); acts.append(hb); }
     if (x.pdf) acts.append(link(big ? 'PDF 보기' : 'PDF', x.html ? c2 : c, x.pdf, true));
     return acts;
   }
@@ -333,6 +333,38 @@ body{font-size:17px}
     wrap.append(b); return wrap;
   }
   function msg(err){ var m = (err && err.message) || ''; m = m.replace(/^Exception:\s*/,''); return m || '저장하지 못했습니다. 잠시 뒤 다시 해 주세요.'; }
+
+  /* ---------- 읽기 화면: 목록을 떠나지 않고 자료를 펼쳐 봅니다 ---------- */
+  var readerSeq = 0;
+  function closeReader(){ readerSeq++; var r = $('reader'); if (r){ r.remove(); document.body.classList.remove('reading'); } }
+  function openReader(w, k){
+    closeReader();
+    var x = w[k]; if (!x || !x.html) return;
+    var seq = readerSeq;
+    var r = el('div','reader'); r.id = 'reader'; r.setAttribute('role','dialog'); r.setAttribute('aria-label', KINDS[k].name);
+    var bar = el('div','bar');
+    var back = el('button','btn','← 목록'); back.type = 'button'; back.addEventListener('click', closeReader);
+    bar.append(back, el('b', null, KINDS[k].name + ' · ' + (w.title || '')));
+    if (x.pdf) bar.append(link('PDF', 'btn', x.pdf, true));
+    var wait = el('p','pdfstate','불러오는 중입니다…');
+    var holder = el('div'); holder.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;background:var(--paper)';
+    holder.append(wait);
+    r.append(bar, holder);
+    document.body.append(r); document.body.classList.add('reading'); back.focus();
+    call('getHtml', x.html).then(function(html){
+      if (seq !== readerSeq) return;
+      var f = document.createElement('iframe');
+      f.setAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');
+      f.setAttribute('title', KINDS[k].name + ' ' + (w.title || ''));
+      f.srcdoc = html;
+      holder.replaceWith(f);
+    }).catch(function(err){
+      if (seq !== readerSeq) return;
+      wait.textContent = '자료를 불러오지 못했습니다. '; wait.classList.add('err');
+      wait.append(link('새 창으로 열기', 'lk', viewUrl(x.html), false));
+    });
+  }
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeReader(); });
 
   /* ---------- 편집 비밀번호 ---------- */
   function renderPin(){
