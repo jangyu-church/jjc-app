@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: 한 줄 기둥 — 짙은 청회색 머리 띠, 종류 탭, '이번 주' 묶음 한 장, 그 아래 달별로 쌓이는 지난 자료 목록. 색과 글꼴은 요약본·교재 원본에서 가져옴 */
+:root{
+  --paper:#f7f4ee; --card:#ffffff; --ink:#23201c; --ink-2:#555048; --ink-3:#857d73; --line:#e4dccf;
+  --band:#2f4858; --on-band:#ffffff; --slate:#2f4858; --slate-soft:#e8eef1; --on-slate:#ffffff;
+  --gold:#9a6a36; --gold-soft:#f6ede0; --danger:#a83a32; --danger-soft:#f8e7e5; --shade:rgba(35,32,28,.06);
+  --f-disp:"Gowun Batang","Noto Serif KR","AppleMyungjo",serif;
+  --f-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#14181b; --card:#1c2226; --ink:#ece7df; --ink-2:#c3bbb0; --ink-3:#8f887e; --line:#2d353b;
+  --band:#1d3240; --on-band:#f4f1ec; --slate:#9cc0d4; --slate-soft:#1f2f39; --on-slate:#10191f;
+  --gold:#d8a96f; --gold-soft:#2c241a; --danger:#ef8a80; --danger-soft:#3a1f1c; --shade:rgba(0,0,0,.3);
+  color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#14181b; --card:#1c2226; --ink:#ece7df; --ink-2:#c3bbb0; --ink-3:#8f887e; --line:#2d353b;
+  --band:#1d3240; --on-band:#f4f1ec; --slate:#9cc0d4; --slate-soft:#1f2f39; --on-slate:#10191f;
+  --gold:#d8a96f; --gold-soft:#2c241a; --danger:#ef8a80; --danger-soft:#3a1f1c; --shade:rgba(0,0,0,.3);
+  color-scheme:dark }
+*{box-sizing:border-box}
+html{background:var(--paper)}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;letter-spacing:-.01em;word-break:keep-all;-webkit-font-smoothing:antialiased;padding-block:0 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--band)}
+body.reading{overflow:hidden}
+button,input,select{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--slate);outline-offset:2px;border-radius:6px}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.band{background:var(--band);color:var(--on-band)}
+.band .wrap{padding-block:30px 26px;display:flex;flex-direction:column;gap:4px}
+.band .church{font-size:12.5px;letter-spacing:.18em;opacity:.85}
+.band h1{margin:0;font-family:var(--f-disp);font-weight:700;font-size:32px;line-height:1.3;letter-spacing:-.01em}
+.band p{margin:2px 0 0;font-size:14.5px;opacity:.88}
+
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.tabs .wrap{display:flex;gap:22px;overflow-x:auto;scrollbar-width:none}
+.tabs .wrap::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:13px 0 11px;font-size:15px;font-weight:500;color:var(--ink-3);white-space:nowrap;border-bottom:2px solid transparent}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--slate)}
+
+main.wrap{display:flex;flex-direction:column;gap:36px;padding-top:24px}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.14em;color:var(--gold);margin:0}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 16px;border-radius:9px;border:1px solid var(--line);background:var(--card);font-size:14.5px;font-weight:600;text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:var(--slate)}
+.btn.main{background:var(--slate);border-color:var(--slate);color:var(--on-slate)}
+.btn.main:hover{filter:brightness(1.08)}
+.btn.small{min-height:34px;padding:0 12px;font-size:13.5px;border-radius:8px}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:transparent}
+.btn.danger.armed{background:var(--danger);color:var(--card)}
+.btn[disabled]{opacity:.55;cursor:default}
+
+/* 이번 주 */
+.week{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 20px;display:flex;flex-direction:column;gap:18px;box-shadow:0 1px 2px var(--shade)}
+.week .head{display:flex;flex-direction:column;gap:6px}
+.week h2{margin:0;font-family:var(--f-disp);font-weight:700;font-size:28px;line-height:1.35;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:14px;color:var(--ink-2)}
+.ref{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 12px;font-size:13.5px;color:var(--ink-2);white-space:nowrap}
+.docs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.doc{border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--slate-soft)}
+.doc.mokjang{background:var(--gold-soft)}
+.doc h3{margin:0;font-size:16.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+.doc h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--slate);flex:none}
+.doc.mokjang h3::before{background:var(--gold)}
+.doc p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.doc .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.doc.mokjang .btn.main{background:var(--gold);border-color:var(--gold)}
+.doc.none{background:transparent;border:1px dashed var(--line)}
+.doc.none h3::before{background:var(--ink-3)}
+
+/* 올리기 */
+.owner{border:1px dashed var(--slate);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--card)}
+.owner .row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px}
+.owner .row p{margin:0;font-size:14px;color:var(--ink-2);flex:1 1 260px}
+.owner .row b{color:var(--ink)}
+.up{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line);padding-top:14px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:13.5px;font-weight:500;color:var(--ink-2)}
+.field small{font-size:12.5px;color:var(--ink-3)}
+.field input,.field select{font-size:16px;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:var(--paper);color:var(--ink);width:100%;min-width:0}
+.field input:focus,.field select:focus{outline:none;border-color:var(--slate)}
+.field input[type=file]{padding:10px;background:var(--card)}
+.grid3{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:12px}
+.files{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.files li{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px;align-items:center;background:var(--paper);border-radius:8px;padding:8px 10px}
+.files .fn{font-size:13.5px;overflow-wrap:anywhere}
+.files .fn small{display:block;color:var(--ink-3);font-size:12px}
+.files select{font-size:14px;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--card);width:100%}
+.note{margin:0;font-size:13.5px;border-radius:8px;padding:9px 12px;background:var(--slate-soft);color:var(--ink)}
+.note.err{background:var(--danger-soft);color:var(--danger)}
+.up .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+/* 지난 자료 */
+.past{display:flex;flex-direction:column;gap:14px}
+.past .top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 16px}
+.past h2{margin:0;font-family:var(--f-disp);font-size:22px;font-weight:700}
+.past .count{font-size:13.5px;color:var(--ink-3);margin-left:8px;font-family:var(--f-body);font-weight:400}
+.search input{font-size:15px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;background:var(--card);color:var(--ink);width:min(240px,100%)}
+.search input:focus{outline:none;border-color:var(--slate)}
+.search{flex:0 1 240px}
+.month{margin:10px 0 0;font-size:13px;font-weight:700;color:var(--ink-3);letter-spacing:.06em;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.rows{list-style:none;margin:0;padding:0}
+.rows li{display:grid;grid-template-columns:58px minmax(0,1fr);gap:4px 14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.d{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;color:var(--ink-2);line-height:1.3;padding-top:2px}
+.d small{display:block;font-weight:400;font-size:12px;color:var(--ink-3)}
+.r{display:flex;flex-direction:column;gap:6px;min-width:0}
+.r .t{font-family:var(--f-disp);font-weight:700;font-size:18px;line-height:1.4}
+.r .t span{font-family:var(--f-body);font-weight:400;font-size:13.5px;color:var(--ink-3);margin-left:8px;white-space:nowrap}
+.links{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;align-items:center}
+.links .k{color:var(--ink-3);font-size:13px}
+.lk{border:0;background:none;padding:2px 0;font-weight:600;color:var(--slate);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;font-size:14px}
+.lk.gold{color:var(--gold)}
+.grp{display:inline-flex;gap:8px;align-items:baseline}
+.empty{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--ink-2);font-size:14.5px}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:2px}
+footer{font-size:12.5px;color:var(--ink-3);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:14px}
+
+/* 읽기 화면 */
+.reader{position:fixed;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column}
+.reader .bar{flex:none;background:var(--band);color:var(--on-band);display:flex;align-items:center;gap:10px;
+  padding:calc(8px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px))}
+.reader .bar b{flex:1;min-width:0;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reader .bar .btn{min-height:36px;background:transparent;color:var(--on-band);border-color:rgba(255,255,255,.4);font-size:14px;padding:0 12px}
+.reader iframe{flex:1;width:100%;border:0;background:#fbf8f3}
+.pdfview{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--line);display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px max(12px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.pdfview canvas{display:block;max-width:100%;background:#ffffff;box-shadow:0 1px 4px rgba(0,0,0,.18);border-radius:2px}
+.pdfstate{margin:40px 0 0;font-size:15px;color:var(--ink-2)}
+.pdfstate.err{color:var(--danger)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(20px,env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:9px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+
+@media (max-width:560px){
+  .band h1{font-size:28px}
+  .week{padding:18px 16px}
+  .week h2{font-size:24px}
+  .docs{grid-template-columns:1fr}
+  .grid3{grid-template-columns:1fr}
+  .files li{grid-template-columns:1fr}
+  .rows li{grid-template-columns:48px minmax(0,1fr);gap:4px 10px}
+  .search{flex:1 1 100%}
+  .search input{width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.pin{display:flex;flex-direction:column;gap:12px}
+.pin .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.pin .field{flex:1 1 200px}
+.admin{align-self:center;border:0;background:none;color:var(--ink-3);font-size:13.5px;text-decoration:underline;text-underline-offset:3px;padding:6px}
+.lk{cursor:pointer}
+a.lk{display:inline-block}
+.doc .acts a.btn{color:inherit}
+.doc .acts a.btn.main{color:var(--on-slate)}
+body{font-size:17px}
+.r .t{font-size:19px}
+.links{font-size:15px}
+.lk{font-size:15px}
+</style>
+<title>말씀 자료실</title>
+</head>
+<body>
+<div id="root"></div>
+<script type="application/json" id="data"><?!= dataJson ?></script>
+<div id="appUrl" hidden><?= appUrl ?></div>
+<div id="hasPin" hidden><?= hasPin ? 'true' : 'false' ?></div>
+<script>
+(function(){
+  "use strict";
+  var APP_URL = document.getElementById('appUrl').textContent;
+  var weeks = [];
+  try { weeks = JSON.parse(document.getElementById('data').textContent) || []; } catch(e){}
+  var hasPin = document.getElementById('hasPin').textContent === 'true';
+  var KINDS = {
+    summary: {name:'설교 요약본', desc:'설교를 한 문장 요약과 대지별 정리로 담았습니다.', cls:''},
+    mokjang: {name:'목장 모임 교재', desc:'마음 열기부터 나눔 질문, 적용과 기도까지 목장 모임 순서대로입니다.', cls:'mokjang'}
+  };
+  var DAYS = ['일','월','화','수','목','금','토'];
+  var tab = 'all', query = '', editing = false, pin = '', pinOpen = false, pinMsg = null;
+  var upOpen = false, upFiles = [], upMsg = null, busy = false, armed = null;
+  var upGuess = {date:'', title:'', ref:''};
+  try { pin = sessionStorage.getItem('jjc_word_pin') || ''; if (pin) editing = true; } catch(e){}
+
+  function $(id){ return document.getElementById(id); }
+  function el(tag, cls, text){ var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function parseDate(s){ var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2]-1, +m[3]) : null; }
+  function dayLabel(s){ var d = parseDate(s); if (!d) return s || ''; return (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + (d.getDay() === 0 ? '주일' : DAYS[d.getDay()] + '요일'); }
+  function has(w, k){ var x = w[k]; return !!(x && (x.html || x.pdf)); }
+  function viewUrl(id){ return APP_URL + '?v=' + encodeURIComponent(id); }
+  function toast(t){ var n = $('toast'); if (!n) return; n.textContent = t; n.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function(){ n.hidden = true; }, 3200); }
+  function call(fn){
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function(ok, no){ var r = google.script.run.withSuccessHandler(ok).withFailureHandler(no); r[fn].apply(r, args); });
+  }
+  function link(text, cls, href, newTab){
+    var a = el('a', cls, text); a.href = href; a.target = newTab ? '_blank' : '_top'; if (newTab) a.rel = 'noopener'; return a;
+  }
+
+  /* ---------- 화면 그리기 ---------- */
+  function render(){
+    var root = $('root'); root.innerHTML = '';
+    var band = el('header','band'); var bw = el('div','wrap');
+    bw.append(el('span','church','장유중앙교회'), el('h1', null, '말씀 자료실'), el('p', null, '주일 설교 요약본과 목장 모임 교재를 주마다 모아 둡니다.'));
+    band.append(bw); root.append(band);
+
+    var nav = el('nav','tabs'); nav.setAttribute('aria-label','자료 종류'); var nw = el('div','wrap');
+    [['all','전체'],['summary','설교 요약본'],['mokjang','목장 모임 교재']].forEach(function(t){
+      var b = el('button','tab' + (tab === t[0] ? ' on' : ''), t[1]); b.type = 'button';
+      b.setAttribute('aria-pressed', tab === t[0] ? 'true' : 'false');
+      b.addEventListener('click', function(){ tab = t[0]; render(); });
+      nw.append(b);
+    });
+    nav.append(nw); root.append(nav);
+
+    var main = el('main','wrap');
+    if (editing) main.append(renderOwner());
+    else if (pinOpen) main.append(renderPin());
+    var list = weeks.filter(function(w){ return tab === 'all' ? (has(w,'summary') || has(w,'mokjang')) : has(w, tab); });
+    if (!list.length){
+      var e = el('div','empty'); e.append(el('b', null, '아직 올라온 자료가 없습니다'), document.createTextNode('새 자료가 올라오면 이곳 맨 위에 나타납니다.'));
+      main.append(e);
+    } else {
+      main.append(renderWeek(list[0]));
+      main.append(renderPast(list.slice(1)));
+    }
+    var f = el('footer'); f.append(el('span', null, '장유중앙교회 · 담임목사 이경로'));
+    if (!editing && !pinOpen){
+      var ad = el('button','admin','자료 올리기 (담당자)'); ad.type = 'button';
+      ad.addEventListener('click', function(){ pinOpen = true; pinMsg = null; render(); var i = $('pin'); if (i) i.focus(); });
+      f.append(ad);
+    } else if (editing){
+      var out = el('button','admin','올리기 마치기'); out.type = 'button';
+      out.addEventListener('click', function(){ editing = false; upOpen = false; upFiles = []; pin = ''; try { sessionStorage.removeItem('jjc_word_pin'); } catch(e){} render(); });
+      f.append(out);
+    }
+    main.append(f);
+    root.append(main);
+    var t = el('div','toast'); t.id = 'toast'; t.hidden = true; t.setAttribute('role','status'); root.append(t);
+  }
+
+  function docActs(w, k, big){
+    var x = w[k], acts = el('div', big ? 'acts' : 'grp');
+    if (!big) acts.append(el('span','k', k === 'summary' ? '요약본' : '목장 교재'));
+    var c = big ? 'btn main' : 'lk' + (k === 'mokjang' ? ' gold' : '');
+    var c2 = big ? 'btn' : 'lk' + (k === 'mokjang' ? ' gold' : '');
+    if (x.html) acts.append(link(big ? '휴대폰 화면으로 보기' : '보기', c, viewUrl(x.html), false));
+    if (x.pdf) acts.append(link(big ? 'PDF 보기' : 'PDF', x.html ? c2 : c, x.pdf, true));
+    return acts;
+  }
+
+  function renderWeek(w){
+    var sec = el('section','week'); sec.setAttribute('aria-label','최근 말씀 자료');
+    var head = el('div','head');
+    var d = parseDate(w.date), now = new Date(); now.setHours(0,0,0,0);
+    var diff = d ? Math.round((now - d) / 86400000) : 99;
+    head.append(el('p','eyebrow', (diff >= -6 && diff <= 6 ? '이번 주 말씀' : '가장 최근 말씀') + ' · ' + dayLabel(w.date)));
+    head.append(el('h2', null, w.title || '제목 없음'));
+    if (w.ref){ var m = el('div','meta'); m.append(el('span','ref', w.ref)); head.append(m); }
+    sec.append(head);
+    var docs = el('div','docs');
+    ['summary','mokjang'].forEach(function(k){
+      if (tab !== 'all' && tab !== k) return;
+      var K = KINDS[k];
+      var box = el('div','doc ' + K.cls + (has(w,k) ? '' : ' none'));
+      box.append(el('h3', null, K.name));
+      if (!has(w,k)){ box.append(el('p', null, '이번 주에는 아직 올라오지 않았습니다.')); docs.append(box); return; }
+      box.append(el('p', null, K.desc));
+      box.append(docActs(w, k, true));
+      docs.append(box);
+    });
+    sec.append(docs);
+    if (editing) sec.append(delButton(w));
+    return sec;
+  }
+
+  function renderPast(list){
+    var sec = el('section','past');
+    var top = el('div','top');
+    var h2 = el('h2', null, '지난 자료'); h2.append(el('span','count', list.length + '주'));
+    top.append(h2);
+    if (list.length > 3){
+      var s = el('label','search'); var inp = el('input'); inp.id = 'q'; inp.type = 'search'; inp.placeholder = '제목이나 본문으로 찾기'; inp.setAttribute('aria-label','지난 자료 찾기'); inp.value = query;
+      inp.addEventListener('input', function(){ query = inp.value.trim(); drawRows(); });
+      s.append(inp); top.append(s);
+    }
+    sec.append(top);
+    var box = el('div'); sec.append(box);
+    function drawRows(){
+      box.innerHTML = '';
+      var q = query.toLowerCase();
+      var shown = list.filter(function(w){ return !q || ((w.title || '') + ' ' + (w.ref || '') + ' ' + dayLabel(w.date)).toLowerCase().indexOf(q) > -1; });
+      if (!list.length){ var e = el('div','empty'); e.append(el('b', null, '지난 자료가 아직 없습니다'), document.createTextNode('다음 주 자료가 올라오면 이번 주 자료가 이리로 내려옵니다.')); box.append(e); return; }
+      if (!shown.length){ var e2 = el('div','empty'); e2.append(el('b', null, '찾는 자료가 없습니다'), document.createTextNode('다른 낱말로 찾아보세요.')); box.append(e2); return; }
+      var lastMonth = '', ul = null;
+      shown.forEach(function(w){
+        var d = parseDate(w.date), mk = d ? d.getFullYear() + '년 ' + (d.getMonth()+1) + '월' : '날짜 없음';
+        if (mk !== lastMonth){ lastMonth = mk; box.append(el('h3','month', mk)); ul = el('ul','rows'); box.append(ul); }
+        var li = el('li');
+        var dd = el('div','d', d ? (d.getMonth()+1) + '.' + String(d.getDate()).padStart(2,'0') : ''); if (d) dd.append(el('small', null, d.getDay() === 0 ? '주일' : DAYS[d.getDay()]));
+        var r = el('div','r'); var t = el('div','t', w.title || '제목 없음'); if (w.ref) t.append(el('span', null, w.ref)); r.append(t);
+        var links = el('div','links');
+        ['summary','mokjang'].forEach(function(k){
+          if (tab !== 'all' && tab !== k) return;
+          if (has(w,k)) links.append(docActs(w, k, false));
+        });
+        r.append(links);
+        if (editing) r.append(delButton(w, true));
+        li.append(dd, r); ul.append(li);
+      });
+    }
+    drawRows();
+    return sec;
+  }
+
+  function delButton(w, small){
+    var wrap = el('div'); wrap.style.display = 'flex'; wrap.style.justifyContent = small ? 'flex-start' : 'flex-end';
+    var isArmed = armed === w.date;
+    var b = el('button','btn small danger' + (isArmed ? ' armed' : ''), isArmed ? '한 번 더 누르면 이 주 자료를 지웁니다' : '이 주 자료 지우기');
+    b.type = 'button'; b.disabled = busy;
+    b.addEventListener('click', function(){
+      if (armed !== w.date){ armed = w.date; render(); return; }
+      armed = null; busy = true; render();
+      call('deleteWeek', pin, w.date).then(function(next){ weeks = next; busy = false; render(); toast(dayLabel(w.date) + ' 자료를 지웠습니다. 드라이브 휴지통에서 되살릴 수 있습니다.'); })
+        .catch(function(err){ busy = false; render(); toast(msg(err)); });
+    });
+    wrap.append(b); return wrap;
+  }
+  function msg(err){ var m = (err && err.message) || ''; m = m.replace(/^Exception:\s*/,''); return m || '저장하지 못했습니다. 잠시 뒤 다시 해 주세요.'; }
+
+  /* ---------- 편집 비밀번호 ---------- */
+  function renderPin(){
+    var box = el('section','owner pin'); box.setAttribute('aria-label','편집 비밀번호');
+    box.append(el('p', null, hasPin ? '자료를 올리려면 편집 비밀번호를 넣어 주세요.' : '처음 한 번, 자료를 올릴 때 쓸 편집 비밀번호를 정해 주세요. 4자 이상이면 됩니다.'));
+    var row = el('div','row2');
+    var f = el('div','field'); var l = el('label', null, '편집 비밀번호'); l.htmlFor = 'pin';
+    var i = el('input'); i.id = 'pin'; i.type = 'password'; i.autocomplete = 'current-password';
+    f.append(l, i);
+    var ok = el('button','btn main', busy ? '확인 중…' : '확인'); ok.type = 'button'; ok.disabled = busy;
+    var no = el('button','btn','취소'); no.type = 'button';
+    function go(){
+      var v = i.value.trim(); if (!v) return;
+      busy = true; render();
+      call('checkPin', v).then(function(r){
+        busy = false; pin = v; hasPin = true; editing = true; pinOpen = false; upOpen = true;
+        try { sessionStorage.setItem('jjc_word_pin', v); } catch(e){}
+        render(); toast(r === 'set' ? '편집 비밀번호를 정했습니다.' : '자료를 올릴 수 있습니다.');
+      }).catch(function(err){ busy = false; pinMsg = msg(err); render(); var p = $('pin'); if (p) p.focus(); });
+    }
+    ok.addEventListener('click', go);
+    i.addEventListener('keydown', function(e){ if (e.key === 'Enter') go(); });
+    no.addEventListener('click', function(){ pinOpen = false; pinMsg = null; render(); });
+    row.append(f, no, ok); box.append(row);
+    if (pinMsg){ var m = el('p','note err', pinMsg); m.setAttribute('role','alert'); box.append(m); }
+    return box;
+  }
+
+  /* ---------- 올리기 ---------- */
+  function renderOwner(){
+    var box = el('section','owner'); box.setAttribute('aria-label','자료 올리기');
+    var row = el('div','row');
+    var p = el('p'); p.append(el('b', null, '올리기 화면입니다. '), document.createTextNode('요약본·교재 파일(HTML, PDF)을 고르면 날짜와 제목을 알아서 채워 맨 위에 올립니다.'));
+    var b = el('button','btn main', upOpen ? '올리기 닫기' : '자료 올리기'); b.type = 'button';
+    b.addEventListener('click', function(){ upOpen = !upOpen; if (!upOpen){ upFiles = []; upMsg = null; } render(); });
+    row.append(p, b); box.append(row);
+    if (upOpen) box.append(renderUpload());
+    return box;
+  }
+
+  function renderUpload(){
+    var up = el('div','up');
+    var ff = el('div','field');
+    var lab = el('label', null, '파일 고르기 (여러 개 한꺼번에)'); lab.htmlFor = 'up-files';
+    var inp = el('input'); inp.type = 'file'; inp.id = 'up-files'; inp.multiple = true; inp.accept = '.html,.htm,.pdf,text/html,application/pdf';
+    inp.addEventListener('change', function(){ readFiles(Array.prototype.slice.call(inp.files || [])); });
+    ff.append(lab, inp, el('small', null, '보통 요약본 HTML·PDF, 교재 HTML·PDF 네 개를 고르시면 됩니다. 하나만 올려도 됩니다.'));
+    up.append(ff);
+    if (upFiles.length){
+      var g = el('div','grid3');
+      g.append(field('up-date','설교 날짜','date', upGuess.date), field('up-title','설교 제목','text', upGuess.title), field('up-ref','본문','text', upGuess.ref));
+      up.append(g);
+      var ul = el('ul','files');
+      upFiles.forEach(function(f, i){
+        var li = el('li'); var fn = el('div','fn', f.file.name); fn.append(el('small', null, (f.isPdf ? 'PDF' : '휴대폰 화면(HTML)') + ' · ' + Math.round(f.file.size/1024) + 'KB'));
+        var sel = el('select'); sel.id = 'up-kind-' + i; sel.setAttribute('aria-label', f.file.name + ' 종류');
+        [['','종류를 골라 주세요'],['summary','설교 요약본'],['mokjang','목장 모임 교재'],['skip','올리지 않음']].forEach(function(o){ var op = el('option', null, o[1]); op.value = o[0]; if (f.kind === o[0]) op.selected = true; sel.append(op); });
+        sel.addEventListener('change', function(){ f.kind = sel.value; });
+        li.append(fn, sel); ul.append(li);
+      });
+      up.append(ul);
+      var dateIn = up.querySelector('#up-date');
+      var exist = el('p','note');
+      function checkExist(){ var w = weeks.filter(function(x){ return x.date === dateIn.value; })[0]; exist.hidden = !w; if (w) exist.textContent = dayLabel(w.date) + ' 자료가 이미 있습니다. 고른 파일로 그 주 자료를 바꿉니다(고르지 않은 종류는 그대로 둡니다).'; }
+      dateIn.addEventListener('input', checkExist); checkExist();
+      up.append(exist);
+    }
+    if (upMsg){ var m = el('p','note' + (upMsg.err ? ' err' : ''), upMsg.text); m.setAttribute('role','alert'); up.append(m); }
+    var acts = el('div','acts');
+    var c = el('button','btn','취소'); c.type = 'button'; c.addEventListener('click', function(){ upOpen = false; upFiles = []; upMsg = null; render(); });
+    var s = el('button','btn main', busy ? '올리는 중…' : '자료실에 올리기'); s.type = 'button'; s.id = 'up-save'; s.disabled = busy || !upFiles.length;
+    s.addEventListener('click', submitUpload);
+    acts.append(c, s); up.append(acts);
+    return up;
+  }
+  function field(id, label, type, val){
+    var f = el('div','field'); var l = el('label', null, label); l.htmlFor = id;
+    var i = el('input'); i.id = id; i.type = type; i.value = val || ''; if (type === 'text') i.maxLength = 80;
+    f.append(l, i); return f;
+  }
+  function kindOf(s){ s = s || ''; if (/요\s*약/.test(s)) return 'summary'; if (/목\s*장|공\s*과|교\s*재/.test(s)) return 'mokjang'; return ''; }
+  function dateFromName(s){
+    var m = /(20\d{2})[.\-_ ]?(0[1-9]|1[0-2])[.\-_ ]?(0[1-9]|[12]\d|3[01])/.exec(s || ''); if (m) return m[1] + '-' + m[2] + '-' + m[3];
+    return '';
+  }
+  function dateFromText(s, y){
+    var m = /(20\d{2})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/.exec(s || '');
+    if (m) return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
+    m = /(\d{1,2})\s*월\s*(\d{1,2})\s*일/.exec(s || '');
+    if (m) return y + '-' + String(m[1]).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
+    return '';
+  }
+  function readFiles(list){
+    upMsg = null; upFiles = []; upGuess = {date:'', title:'', ref:''};
+    var jobs = list.map(function(file){
+      var isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+      var isHtml = /\.html?$/i.test(file.name) || file.type === 'text/html';
+      if (!isPdf && !isHtml) return Promise.resolve(null);
+      var item = {file:file, isPdf:isPdf, kind:kindOf(file.name)};
+      var d = dateFromName(file.name); if (d && !upGuess.date) upGuess.date = d;
+      if (isPdf) return Promise.resolve(item);
+      return file.text().then(function(txt){
+        try {
+          var doc = new DOMParser().parseFromString(txt, 'text/html');
+          var kick = doc.querySelector('.kicker'), h1 = doc.querySelector('h1'), ref = doc.querySelector('.ref'), by = doc.querySelector('.by');
+          var k2 = kindOf((kick && kick.textContent || '').replace(/\s+/g,'')) || kindOf(doc.title);
+          if (k2) item.kind = k2;
+          item.g = {
+            title: h1 ? h1.textContent.replace(/\s+/g,' ').trim() : (doc.title || '').split(/\s[—–-]\s/)[0].trim(),
+            ref: ref ? ref.textContent.replace(/\s+/g,' ').trim() : '',
+            date: dateFromText(by && by.textContent, new Date().getFullYear())
+          };
+        } catch(e){}
+        return item;
+      });
+    });
+    Promise.all(jobs).then(function(items){
+      upFiles = items.filter(Boolean);
+      var src = upFiles.filter(function(f){ return f.g; }).sort(function(a,b){ return (a.kind === 'summary' ? 0 : 1) - (b.kind === 'summary' ? 0 : 1); });
+      src.forEach(function(f){
+        if (!upGuess.title && f.g.title) upGuess.title = f.g.title;
+        if (!upGuess.ref && f.g.ref) upGuess.ref = f.g.ref;
+      });
+      var hd = src.map(function(f){ return f.g.date; }).filter(Boolean)[0]; if (hd) upGuess.date = hd;
+      if (list.length && !upFiles.length) upMsg = {err:true, text:'HTML이나 PDF 파일만 올릴 수 있습니다.'};
+      var kinds = upFiles.filter(function(f){ return f.kind; }).map(function(f){ return f.kind; });
+      upFiles.forEach(function(f){
+        if (f.kind) return;
+        var missing = ['summary','mokjang'].filter(function(k){ return upFiles.filter(function(g){ return g.kind === k && g.isPdf === f.isPdf; }).length === 0 && kinds.indexOf(k) > -1; });
+        if (missing.length === 1) f.kind = missing[0];
+      });
+      render();
+    });
+  }
+  function toBase64(file){
+    return new Promise(function(ok, no){
+      var r = new FileReader();
+      r.onload = function(){ var s = String(r.result); ok(s.slice(s.indexOf(',') + 1)); };
+      r.onerror = function(){ no(new Error('파일을 읽지 못했습니다.')); };
+      r.readAsDataURL(file);
+    });
+  }
+  function submitUpload(){
+    if (busy) return;
+    var date = ($('up-date') || {}).value || '', title = (($('up-title') || {}).value || '').trim(), ref = (($('up-ref') || {}).value || '').trim();
+    function fail(t){ upMsg = {err:true, text:t}; render(); }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail('설교 날짜를 골라 주세요.');
+    if (!title) return fail('설교 제목을 적어 주세요.');
+    if (upFiles.some(function(f){ return !f.kind; })) return fail('종류가 비어 있는 파일이 있습니다. 설교 요약본인지 목장 모임 교재인지 골라 주세요.');
+    var chosen = upFiles.filter(function(f){ return f.kind === 'summary' || f.kind === 'mokjang'; });
+    if (!chosen.length) return fail('올릴 파일이 없습니다.');
+    var dup = {};
+    for (var i = 0; i < chosen.length; i++){ var key = chosen[i].kind + (chosen[i].isPdf ? 'pdf' : 'html'); if (dup[key]) return fail('같은 종류의 ' + (chosen[i].isPdf ? 'PDF' : 'HTML') + ' 파일이 두 개입니다. 하나는 "올리지 않음"으로 바꿔 주세요.'); dup[key] = 1; }
+    if (chosen.some(function(f){ return f.file.size > 20 * 1024 * 1024; })) return fail('20MB가 넘는 파일은 올릴 수 없습니다.');
+    busy = true; upMsg = {text:'올리는 중입니다. 잠시만 기다려 주세요.'}; render();
+    Promise.all(chosen.map(function(f){ return toBase64(f.file).then(function(b64){ return {kind:f.kind, fmt:f.isPdf ? 'pdf' : 'html', name:f.file.name, data:b64}; }); }))
+      .then(function(files){ return call('saveWeek', pin, {date:date, title:title, ref:ref}, files); })
+      .then(function(next){ weeks = next; busy = false; upOpen = false; upFiles = []; upMsg = null; render(); toast(dayLabel(date) + ' 자료를 올렸습니다.'); window.scrollTo(0, 0); })
+      .catch(function(err){
+        busy = false; var m = msg(err);
+        if (/비밀번호/.test(m)){ editing = false; pin = ''; try { sessionStorage.removeItem('jjc_word_pin'); } catch(e){} pinOpen = true; pinMsg = m; render(); return; }
+        fail(m);
+      });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
