@@ -9,6 +9,7 @@
 | `jubo/` | 모바일 주보 (교인용) | https://jangyu-church.github.io/jjc-app/jubo/ |
 | `jubo-edit/` | 주보 제작 (담임목사·부목사·행정간사) | https://jangyu-church.github.io/jjc-app/jubo-edit/ |
 | `smart/` | 스마트목회 (교회 일정 공유) | https://jangyu-church.github.io/jjc-app/smart/ |
+| `check/` | 목회 일정 점검판 | https://jangyu-church.github.io/jjc-app/check/ |
 | `mokjang/` | 목장관리 교역자 화면 (비밀번호) | https://jangyu-church.github.io/jjc-app/mokjang/ |
 | `mokja/` | 목자 앱 (목장 관리) | 목장마다 다른 링크: `…/jjc-app/mokja/?k=목장열쇠` (열쇠는 교회에서 따로 전달) |
 
