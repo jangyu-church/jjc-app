@@ -3,7 +3,7 @@
   "short_name": "목장관리",
   "description": "장유중앙교회 목장 관리 — 교역자 화면(전체 현황·보고·변동 처리)",
   "lang": "ko",
-  "id": "./",
+  "id": "/jjc-app/mokjang/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

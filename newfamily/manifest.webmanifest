@@ -3,7 +3,7 @@
   "short_name": "새가족",
   "description": "장유중앙교회 새가족 정착 관리 — 등록 새가족·총동원 참석자 관리",
   "lang": "ko",
-  "id": "./",
+  "id": "/jjc-app/newfamily/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

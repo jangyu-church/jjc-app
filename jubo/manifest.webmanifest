@@ -3,7 +3,7 @@
   "short_name": "교회 주보",
   "description": "장유중앙교회 모바일 주보 — 매주 새 주보가 열립니다",
   "lang": "ko",
-  "id": "./",
+  "id": "/jjc-app/jubo/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

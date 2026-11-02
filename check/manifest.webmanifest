@@ -3,7 +3,7 @@
   "short_name": "일정점검",
   "description": "장유중앙교회 목회 일정 점검판 — 위임 업무 신호등·담당별 보기",
   "lang": "ko",
-  "id": "./",
+  "id": "/jjc-app/check/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

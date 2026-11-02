@@ -3,7 +3,7 @@
   "short_name": "주보 제작",
   "description": "장유중앙교회 모바일 주보 제작 — 담임목사·부목사·행정간사용",
   "lang": "ko",
-  "id": "./",
+  "id": "/jjc-app/jubo-edit/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

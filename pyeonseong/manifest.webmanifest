@@ -3,7 +3,7 @@
   "short_name": "목장편성",
   "description": "장유중앙교회 목장 편성 — 목장 조직표와 편성 변경",
   "lang": "ko",
-  "id": "./",
+  "id": "/jjc-app/pyeonseong/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

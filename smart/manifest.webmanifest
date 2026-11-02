@@ -3,7 +3,7 @@
   "short_name": "스마트목회",
   "description": "장유중앙교회 사역 관리 — 교회 일정 공유",
   "lang": "ko",
-  "id": "./",
+  "id": "/jjc-app/smart/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
