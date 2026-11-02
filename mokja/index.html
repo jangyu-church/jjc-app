@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>목자 앱</title>
+<meta name="description" content="장유중앙교회 목자용 목장 관리">
 <meta name="theme-color" content="#2c6b50">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,9 +18,9 @@
   body{padding-top:env(safe-area-inset-top,0px);box-sizing:border-box}
   iframe{display:block;width:100%;height:100%;border:0;background:#f4efe6}
   .wait{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;
-    font:17px/1.6 "Noto Sans KR","Apple SD Gothic Neo",sans-serif;color:#4a4a40;background:#f4efe6;transition:opacity .3s}
-  .wait img{width:76px;height:76px;border-radius:18px}
-  .wait b{font-size:19px;color:#1f2522}
+    font:17px/1.6 "Noto Sans KR","Apple SD Gothic Neo",sans-serif;color:#5F564F;background:#f4efe6;transition:opacity .3s;z-index:5}
+  .wait img{width:80px;height:80px;border-radius:19px}
+  .wait b{font-size:19px;color:#1f1b18}
   .wait a{color:#2c6b50;font-size:15px}
   .wait.gone{opacity:0;pointer-events:none}
 </style>
@@ -28,30 +29,31 @@
 <iframe id="app" title="목자 앱" allow="clipboard-write" hidden></iframe>
 <div class="wait" id="wait">
   <img src="icons/icon-192.png" alt="">
-  <span id="msg">목자 앱을 여는 중입니다</span>
+  <span id="msg">목자 앱을(를) 여는 중입니다</span>
   <a id="direct" hidden>오래 걸리면 여기를 눌러 바로 여세요</a>
 </div>
 <script>
 (function(){
   var EXEC = 'https://script.google.com/macros/s/AKfycbyFewlUoSqurkr1unjibwqYW4K096tpwUc8uaX1-Hf8g3phRCXhPDRHcjFMeDQW-WA2/exec';
+  var q = {}; try{ new URLSearchParams(location.search).forEach(function(v,k){ q[k]=v; }); }catch(e){}
   var KEY = 'jjc_mokja_key';
-  var k = '';
-  try { k = new URLSearchParams(location.search).get('k') || ''; } catch(e){}
+  var k = q.k || '';
   k = k.replace(/[^A-Za-z0-9]/g, '');
   try { if (k) localStorage.setItem(KEY, k); else k = localStorage.getItem(KEY) || ''; } catch(e){}
   var w = document.getElementById('wait'), msg = document.getElementById('msg'), direct = document.getElementById('direct');
   if (!k){
     msg.innerHTML = '<b>목장 링크로 처음 열어 주세요</b><br>교회에서 카톡으로 보내 드린 목장 링크를 한 번 누르면 그다음부터는 이 아이콘으로 바로 열립니다.';
-    return;
+  } else {
+    var url = EXEC + '?k=' + encodeURIComponent(k);
+    direct.href = url;
+    var f = document.getElementById('app');
+    f.addEventListener('load', function(){ w.classList.add('gone'); });
+    f.src = url; f.hidden = false;
+    setTimeout(function(){ direct.hidden = false; }, 10000);
   }
-  var url = EXEC + '?k=' + encodeURIComponent(k);
-  direct.href = url;
-  var f = document.getElementById('app');
-  f.addEventListener('load', function(){ w.classList.add('gone'); });
-  f.src = url; f.hidden = false;
-  setTimeout(function(){ direct.hidden = false; }, 10000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 })();
 </script>
+<script src="../shared/install.js" data-name="목자앱" data-icon="icons/icon-192.png" data-color="#2c6b50"></script>
 </body>
 </html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>주보 제작</title>
+<meta name="description" content="장유중앙교회 모바일 주보 제작 — 담임목사·부목사·행정간사용">
+<meta name="theme-color" content="#9A4418">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="주보 제작">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  html,body{margin:0;height:100%;background:#9A4418;overflow:hidden}
+  body{padding-top:env(safe-area-inset-top,0px);box-sizing:border-box}
+  iframe{display:block;width:100%;height:100%;border:0;background:#F6F1EB}
+  .wait{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;
+    font:17px/1.6 "Noto Sans KR","Apple SD Gothic Neo",sans-serif;color:#5F564F;background:#F6F1EB;transition:opacity .3s;z-index:5}
+  .wait img{width:80px;height:80px;border-radius:19px}
+  .wait b{font-size:19px;color:#1f1b18}
+  .wait a{color:#C85A24;font-size:15px}
+  .wait.gone{opacity:0;pointer-events:none}
+</style>
+</head>
+<body>
+<iframe id="app" title="주보 제작" allow="clipboard-write" hidden></iframe>
+<div class="wait" id="wait">
+  <img src="icons/icon-192.png" alt="">
+  <span id="msg">주보 제작을(를) 여는 중입니다</span>
+  <a id="direct" hidden>오래 걸리면 여기를 눌러 바로 여세요</a>
+</div>
+<script>
+(function(){
+  var EXEC = 'https://script.google.com/macros/s/AKfycbzqjjmJ00nQb9GB6emuSM27sxfW-lOm7ha5alIiXjnawtlR9prv9PWx5FwcDv-kAUQ/exec';
+  var q = {}; try{ new URLSearchParams(location.search).forEach(function(v,k){ q[k]=v; }); }catch(e){}
+  var url = EXEC + '?mode=edit&app=1';
+  var f = document.getElementById('app'), w = document.getElementById('wait'), direct = document.getElementById('direct');
+  direct.href = url;
+  f.addEventListener('load', function(){ w.classList.add('gone'); });
+  f.src = url; f.hidden = false;
+  setTimeout(function(){ direct.hidden = false; }, 10000);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+})();
+</script>
+<script src="../shared/install.js" data-name="주보 제작" data-icon="icons/icon-192.png" data-color="#C85A24"></script>
+</body>
+</html>

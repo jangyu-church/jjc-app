@@ -14,158 +14,37 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
-  :root{--or:#D96A30;--or-d:#B4521D;--ink:#2A2420;--bg:#F7F1EA;--line:#E5D7C8}
   html,body{margin:0;height:100%;background:#C4541E;overflow:hidden}
-  body{padding-top:env(safe-area-inset-top,0px);box-sizing:border-box;display:flex;flex-direction:column;
-    font-family:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
-  iframe{display:block;width:100%;flex:1;min-height:0;border:0;background:var(--bg)}
+  body{padding-top:env(safe-area-inset-top,0px);box-sizing:border-box}
+  iframe{display:block;width:100%;height:100%;border:0;background:#F7F1EA}
   .wait{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;
-    font-size:17px;line-height:1.6;color:#5F564F;background:var(--bg);transition:opacity .3s;z-index:5}
-  .wait img{width:84px;height:84px;border-radius:20px;box-shadow:0 6px 18px rgba(150,60,10,.25)}
-  .wait b{font-size:20px;color:var(--ink)}
-  .wait a{color:var(--or-d);font-size:15px}
+    font:17px/1.6 "Noto Sans KR","Apple SD Gothic Neo",sans-serif;color:#5F564F;background:#F7F1EA;transition:opacity .3s;z-index:5}
+  .wait img{width:80px;height:80px;border-radius:19px}
+  .wait b{font-size:19px;color:#1f1b18}
+  .wait a{color:#D96A30;font-size:15px}
   .wait.gone{opacity:0;pointer-events:none}
-
-  /* 아래쪽 설치 안내 막대 */
-  #bar{flex:none;background:var(--bg);padding:8px max(10px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
-  #bar .in{max-width:640px;margin:0 auto;background:var(--ink);color:#FBF4EA;border-radius:16px;padding:11px 12px;display:flex;gap:11px;align-items:center;
-    box-shadow:0 6px 24px rgba(0,0,0,.22);animation:up .35s ease-out}
-  @keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
-  #bar img{width:44px;height:44px;border-radius:11px;flex:none}
-  #bar .tx{flex:1;min-width:0;font-size:14.5px;line-height:1.4}
-  #bar .tx b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #bar button{border:0;border-radius:11px;padding:10px 15px;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
-  #bar .go{background:var(--or);color:#fff}
-  #bar .x{background:transparent;color:inherit;opacity:.75;padding:10px 6px;font-weight:500;font-size:15px}
-
-  /* 설치 방법 안내 창 */
-  #sheet{position:fixed;inset:0;z-index:20;background:rgba(20,10,4,.6);display:flex;align-items:flex-end;justify-content:center}
-  #sheet[hidden]{display:none}
-  #sheet .box{width:100%;max-width:560px;background:#fff;color:var(--ink);border-radius:20px 20px 0 0;
-    padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow:auto;animation:up .3s ease-out}
-  #sheet .hd{display:flex;gap:12px;align-items:center;margin-bottom:6px}
-  #sheet .hd img{width:46px;height:46px;border-radius:12px}
-  #sheet h2{margin:0;font-size:20px}
-  #sheet p.m{margin:0;color:#6B625B;font-size:15px;line-height:1.55}
-  #sheet ol{margin:14px 0;padding:0;list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:12px}
-  #sheet li{counter-increment:st;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;font-size:16.5px;line-height:1.55}
-  #sheet li::before{content:counter(st);width:28px;height:28px;border-radius:50%;background:var(--or);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
-  #sheet li b{color:var(--or-d)}
-  #sheet .btn{display:block;width:100%;box-sizing:border-box;border:0;border-radius:13px;padding:14px;font:inherit;font-size:17px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;margin-top:8px}
-  #sheet .primary{background:var(--or);color:#fff}
-  #sheet .ghost{background:#F4ECE3;color:var(--ink)}
-  #sheet .row{display:flex;gap:8px;margin-top:6px}
-  #sheet .row input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;color:#555}
-  #sheet .row button{border:0;border-radius:10px;padding:0 14px;background:#F4ECE3;font:inherit;font-weight:700;cursor:pointer}
-  #toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;
-    padding:11px 18px;border-radius:999px;font-size:15px;z-index:30;max-width:calc(100vw - 32px);text-align:center}
-  #toast[hidden]{display:none}
 </style>
 </head>
 <body>
 <iframe id="app" title="장유중앙교회 주보" allow="clipboard-write" hidden></iframe>
-<div id="bar" hidden></div>
-<div id="sheet" hidden></div>
-<div id="toast" hidden></div>
 <div class="wait" id="wait">
   <img src="icons/icon-192.png" alt="">
-  <span>주보를 여는 중입니다</span>
+  <span id="msg">장유중앙교회 주보을(를) 여는 중입니다</span>
   <a id="direct" hidden>오래 걸리면 여기를 눌러 바로 여세요</a>
 </div>
 <script>
 (function(){
   var EXEC = 'https://script.google.com/macros/s/AKfycbzqjjmJ00nQb9GB6emuSM27sxfW-lOm7ha5alIiXjnawtlR9prv9PWx5FwcDv-kAUQ/exec';
-  var K_CLOSED = 'jjc_jubo_install_closed';
-  var $ = function(s){ return document.querySelector(s); };
-  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-  function lsSet(k,v){ try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(e){} }
-  var tT; function toast(m){ var t=$('#toast'); t.textContent=m; t.hidden=false; clearTimeout(tT); tT=setTimeout(function(){ t.hidden=true; },3000); }
-
-  /* ── 주보 불러오기 ── */
   var q = {}; try{ new URLSearchParams(location.search).forEach(function(v,k){ q[k]=v; }); }catch(e){}
-  var src = EXEC + '?app=1' + (q.d ? '&d=' + encodeURIComponent(q.d) : '') + (q.pv ? '&pv=' + encodeURIComponent(q.pv) : '');
-  var f = $('#app'), w = $('#wait'), direct = $('#direct');
-  direct.href = EXEC;
+  var url = EXEC + '?app=1' + (q.d ? '&d=' + encodeURIComponent(q.d) : '') + (q.pv ? '&pv=' + encodeURIComponent(q.pv) : '');
+  var f = document.getElementById('app'), w = document.getElementById('wait'), direct = document.getElementById('direct');
+  direct.href = url;
   f.addEventListener('load', function(){ w.classList.add('gone'); });
-  f.src = src; f.hidden = false;
+  f.src = url; f.hidden = false;
   setTimeout(function(){ direct.hidden = false; }, 10000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
-
-  /* ── 홈 화면에 설치 ── */
-  var deferred = null;
-  function isStandalone(){ try{ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }catch(e){ return false; } }
-  function kind(){
-    var ua = navigator.userAgent || '';
-    if (/KAKAOTALK/i.test(ua)) return 'kakao';
-    if (/NAVER\(inapp|Instagram|FBAN|FBAV|; wv\)|Line\/|BAND\//i.test(ua)) return 'inapp';
-    if (/iPhone|iPad|iPod/.test(ua)) return /CriOS|FxiOS|EdgiOS|NAVER/.test(ua) ? 'ios-other' : 'ios';
-    if (/SamsungBrowser/i.test(ua)) return 'samsung';
-    if (/EdgA/i.test(ua)) return 'edge';
-    if (/Android/.test(ua)) return 'chrome';
-    return 'other';
-  }
-  function guide(){
-    var k = kind();
-    if (k === 'kakao') return { t:'먼저 인터넷 앱으로 열어 주세요', s:['지금은 <b>카카오톡 안</b>에서 열려 있어서 설치가 안 돼요.','아래 <b>‘인터넷 앱으로 열기’</b>를 눌러요.','새로 열린 화면 아래쪽에서 <b>‘설치하기’</b>를 다시 눌러요.'], kakao:true, copy:true };
-    if (k === 'inapp') return { t:'먼저 인터넷 앱으로 열어 주세요', s:['지금은 다른 앱 안에서 열려 있어서 설치가 안 돼요.','화면 위나 아래의 <b>⋮</b> 또는 <b>⋯</b> 메뉴를 눌러요.','<b>‘다른 브라우저로 열기’</b>를 누른 뒤, 아래쪽 <b>‘설치하기’</b>를 다시 눌러요.'], copy:true };
-    if (k === 'ios') return { t:'아이폰에서 설치하기', s:['화면 아래쪽 <b>공유 버튼</b>(네모에서 화살표가 위로 나온 모양)을 눌러요.','메뉴를 위로 올려 <b>‘홈 화면에 추가’</b>를 눌러요.','오른쪽 위 <b>‘추가’</b>를 누르면 <b>교회 주보</b> 아이콘이 생겨요.'], tip:'공유 버튼이 안 보이면 아래쪽 <b>⋯</b>을 먼저 누르세요.' };
-    if (k === 'ios-other') return { t:'사파리로 열어 주세요', s:['아이폰은 <b>Safari(사파리)</b>에서만 설치할 수 있어요.','아래 주소를 복사해 사파리 주소창에 붙여 넣어요.','사파리에서 공유 버튼 → <b>‘홈 화면에 추가’</b>를 눌러요.'], copy:true };
-    if (k === 'samsung') return { t:'삼성 인터넷에서 설치하기', s:['화면 오른쪽 아래 <b>☰</b>(줄 세 개)를 눌러요.','<b>‘현재 페이지 추가’</b>를 누르고 <b>‘홈 화면’</b>을 골라요.','<b>‘추가’</b>를 누르면 <b>교회 주보</b> 아이콘이 생겨요.'] };
-    if (k === 'edge') return { t:'Edge에서 설치하기', s:['화면 아래 <b>☰</b> 또는 <b>⋯</b> 메뉴를 눌러요.','<b>‘휴대폰에 추가’</b> 또는 <b>‘홈 화면에 추가’</b>를 눌러요.','<b>‘설치’</b>를 누르면 아이콘이 생겨요.'] };
-    return { t:'홈 화면에 앱 만들기', s:['오른쪽 위 <b>⋮</b>(점 세 개)를 눌러요.','<b>‘앱 설치’</b> 또는 <b>‘홈 화면에 추가’</b>를 눌러요.','<b>‘설치’</b>를 누르면 <b>교회 주보</b> 아이콘이 생겨요.'], tip:'그래도 안 되면 삼성 인터넷에서 이 주소를 열고 같은 방법으로 해 보세요.' };
-  }
-  function closeSheet(){ var s=$('#sheet'); s.hidden=true; s.innerHTML=''; }
-  function openSheet(){
-    var g = guide(), url = location.origin + location.pathname, s = $('#sheet');
-    var h = '<div class="box" role="dialog" aria-label="'+g.t+'"><div class="hd"><img src="icons/icon-192.png" alt=""><div><h2>'+g.t+'</h2>'+
-      '<p class="m">아이콘을 만들어 두면 매주 한 번에 주보가 열려요.</p></div></div>'+
-      '<ol>'+g.s.map(function(x){ return '<li><span>'+x+'</span></li>'; }).join('')+'</ol>'+
-      (g.tip ? '<p class="m">💡 '+g.tip+'</p>' : '')+
-      (g.kakao ? '<a class="btn primary" id="ext" href="kakaotalk://web/openExternal?url='+encodeURIComponent(url)+'">인터넷 앱으로 열기</a>' : '')+
-      (g.copy ? '<div class="row"><input readonly value="'+url+'" aria-label="앱 주소"><button id="cp">주소 복사</button></div>' : '')+
-      '<button class="btn '+(g.kakao?'ghost':'primary')+'" id="ok">알겠어요</button></div>';
-    s.innerHTML = h; s.hidden = false;
-    s.onclick = function(e){ if (e.target === s) closeSheet(); };
-    $('#ok').onclick = closeSheet;
-    var cp = $('#cp'); if (cp) cp.onclick = function(){
-      var inp = s.querySelector('input'); inp.select();
-      var done = false; try{ done = document.execCommand('copy'); }catch(e){}
-      if (!done && navigator.clipboard) navigator.clipboard.writeText(url).then(function(){ toast('주소를 복사했어요.'); }, function(){ toast('주소를 길게 눌러 복사해 주세요.'); });
-      else toast(done ? '주소를 복사했어요.' : '주소를 길게 눌러 복사해 주세요.');
-    };
-  }
-  function doInstall(){
-    if (isStandalone()){ toast('이미 앱으로 열려 있어요.'); return; }
-    if (deferred){
-      var d = deferred; deferred = null;
-      try{
-        d.prompt();
-        d.userChoice.then(function(r){ if (r && r.outcome === 'accepted') toast('설치하는 중이에요. 잠시 뒤 홈 화면을 확인해 보세요.'); renderBar(); });
-      }catch(e){ openSheet(); }
-      return;
-    }
-    openSheet();
-  }
-  function closed(){ var t = +lsGet(K_CLOSED); return !!t && Date.now() - t < 3 * 864e5; }   // 닫으면 3일 동안 쉬어요
-  function renderBar(){
-    var b = $('#bar'), show = !isStandalone() && !closed();
-    b.hidden = !show;
-    if (!show){ b.innerHTML = ''; return; }
-    if (b.firstChild) return;
-    b.innerHTML = '<div class="in"><img src="icons/icon-192.png" alt=""><div class="tx"><b>앱으로 설치해 보세요</b>홈 화면에 두면 한 번에 열려요</div>'+
-      '<button class="go" type="button">설치하기</button><button class="x" type="button" aria-label="닫기">닫기</button></div>';
-    b.querySelector('.go').onclick = doInstall;
-    b.querySelector('.x').onclick = function(){ lsSet(K_CLOSED, Date.now()); renderBar(); };
-  }
-  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred = e; renderBar(); });
-  window.addEventListener('appinstalled', function(){ deferred = null; closeSheet(); renderBar(); toast('설치되었어요! 홈 화면의 ‘교회 주보’를 눌러 보세요.'); });
-  // 주보 화면 안의 ‘앱 설치’ 단추가 보낸 신호
-  window.addEventListener('message', function(e){
-    var d = e.data;
-    if (d && d.jubo === 'install'){ lsSet(K_CLOSED, null); renderBar(); doInstall(); }
-  });
-  renderBar();
 })();
 </script>
+<script src="../shared/install.js" data-name="교회 주보" data-icon="icons/icon-192.png" data-color="#D96A30"></script>
 </body>
 </html>
