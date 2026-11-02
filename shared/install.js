@@ -36,7 +36,7 @@
   '#jjcSheet h2{margin:0;font-size:20px}'+
   '#jjcSheet p.m{margin:0;color:#6B625B;font-size:15px;line-height:1.55}'+
   '#jjcSheet ol{margin:14px 0;padding:0;list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:12px}'+
-  '#jjcSheet li{counter-increment:st;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;font-size:16.5px;line-height:1.55}'+
+  '#jjcSheet li{counter-increment:st;word-break:keep-all;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;font-size:16.5px;line-height:1.55}'+
   '#jjcSheet li::before{content:counter(st);width:28px;height:28px;border-radius:50%;background:'+COLOR+';color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}'+
   '#jjcSheet li b{color:'+COLOR+'}'+
   '#jjcSheet .btn{display:block;width:100%;box-sizing:border-box;border:0;border-radius:13px;padding:14px;font:inherit;font-size:17px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;margin-top:8px}'+
@@ -66,6 +66,13 @@
     if (/SamsungBrowser/i.test(ua)) return 'samsung';
     if (/EdgA/i.test(ua)) return 'edge';
     if (/Android/.test(ua)) return 'chrome';
+    if (/Windows|Macintosh|Linux|CrOS/.test(ua)){                       // PC
+      if (/Edg\//.test(ua)) return 'pc-edge';
+      if (/Whale/i.test(ua)) return 'pc-whale';
+      if (/Firefox/i.test(ua)) return 'pc-firefox';
+      if (/Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|Chromium/.test(ua)) return 'pc-safari';
+      if (/Chrome|Chromium/.test(ua)) return 'pc-chrome';
+    }
     return 'other';
   }
   function guide(){
@@ -76,13 +83,19 @@
     if (k === 'ios-other') return { t:'사파리로 열어 주세요', s:['아이폰은 <b>Safari(사파리)</b>에서만 설치할 수 있어요.','아래 주소를 복사해 사파리 주소창에 붙여 넣어요.','사파리에서 공유 버튼 → <b>‘홈 화면에 추가’</b>를 눌러요.'], copy:true };
     if (k === 'samsung') return { t:'삼성 인터넷에서 설치하기', s:['화면 오른쪽 아래 <b>☰</b>(줄 세 개)를 눌러요.','<b>‘현재 페이지 추가’</b>를 누르고 <b>‘홈 화면’</b>을 골라요.','<b>‘추가’</b>를 누르면 ' + N + ' 아이콘이 생겨요.'] };
     if (k === 'edge') return { t:'Edge에서 설치하기', s:['화면 아래 <b>☰</b> 또는 <b>⋯</b> 메뉴를 눌러요.','<b>‘휴대폰에 추가’</b> 또는 <b>‘홈 화면에 추가’</b>를 눌러요.','<b>‘설치’</b>를 누르면 ' + N + ' 아이콘이 생겨요.'] };
+    if (k === 'pc-chrome') return { pc:true, t:'컴퓨터에 앱으로 설치하기', s:['주소창 <b>오른쪽 끝</b>에 있는 <b>설치 아이콘</b>(모니터에 아래 화살표 모양)을 눌러요.','아이콘이 안 보이면 오른쪽 위 <b>⋮</b> → <b>‘전송, 저장, 공유’</b> → <b>‘' + esc(NAME) + ' 설치’</b>(또는 ‘페이지를 앱으로 설치’)를 눌러요.','<b>‘설치’</b>를 누르면 바탕화면과 시작 메뉴에 ' + N + ' 아이콘이 생겨요.'] };
+    if (k === 'pc-edge') return { pc:true, t:'컴퓨터에 앱으로 설치하기', s:['주소창 <b>오른쪽</b>의 <b>‘앱 사용 가능’ 아이콘</b>(네모 칸 모양)을 눌러요.','아이콘이 안 보이면 오른쪽 위 <b>⋯</b> → <b>‘앱’</b> → <b>‘이 사이트를 앱으로 설치’</b>를 눌러요.','<b>‘설치’</b>를 누르면 바탕화면과 시작 메뉴에 ' + N + ' 아이콘이 생겨요.'] };
+    if (k === 'pc-whale') return { pc:true, t:'컴퓨터에 앱으로 설치하기', s:['주소창 <b>오른쪽</b>의 <b>설치 아이콘</b>을 눌러요.','아이콘이 안 보이면 오른쪽 위 <b>⋯</b> 메뉴에서 <b>‘앱 설치’</b>를 찾아 눌러요.','<b>‘설치’</b>를 누르면 ' + N + ' 아이콘이 생겨요.'], tip:'잘 안 되면 크롬이나 엣지에서 이 주소를 열어 주세요.', copy:true };
+    if (k === 'pc-safari') return { pc:true, t:'맥에 앱으로 설치하기', s:['화면 맨 위 메뉴에서 <b>‘파일’</b>을 눌러요.','<b>‘Dock에 추가’</b>를 눌러요.','<b>‘추가’</b>를 누르면 Dock에 ' + N + ' 아이콘이 생겨요.'] };
+    if (k === 'pc-firefox') return { pc:true, t:'크롬이나 엣지로 열어 주세요', s:['파이어폭스는 앱 설치를 지원하지 않아요.','아래 주소를 복사해 <b>크롬</b> 또는 <b>엣지</b> 주소창에 붙여 넣어요.','열린 화면 아래쪽 <b>‘설치하기’</b>를 다시 눌러요.'], copy:true };
     return { t:'홈 화면에 앱 만들기', s:['오른쪽 위 <b>⋮</b>(점 세 개)를 눌러요.','<b>‘앱 설치’</b> 또는 <b>‘홈 화면에 추가’</b>를 눌러요.','<b>‘설치’</b>를 누르면 ' + N + ' 아이콘이 생겨요.'], tip:'그래도 안 되면 삼성 인터넷에서 이 주소를 열고 같은 방법으로 해 보세요.' };
   }
   function closeSheet(){ sheet.hidden = true; sheet.innerHTML = ''; }
   function openSheet(){
     var g = guide(), url = location.href.split('#')[0];
     sheet.innerHTML = '<div class="box" role="dialog" aria-label="' + esc(g.t) + '"><div class="hd"><img src="' + esc(ICON) + '" alt=""><div><h2>' + g.t + '</h2>'+
-      '<p class="m">아이콘을 만들어 두면 다음부터 한 번에 열려요.</p></div></div>'+
+      '<p class="m">' + (g.pc ? '바탕화면 아이콘을 두 번 누르면 바로 열려요.' : '아이콘을 만들어 두면 다음부터 한 번에 열려요.') + '</p></div></div>'+
+      (deferred ? '<button type="button" class="btn primary" data-now>지금 바로 설치하기</button><p class="m" style="margin-top:12px">버튼이 안 되면 아래 방법으로 하세요.</p>' : '')+
       '<ol>' + g.s.map(function(x){ return '<li><span>' + x + '</span></li>'; }).join('') + '</ol>'+
       (g.tip ? '<p class="m">💡 ' + g.tip + '</p>' : '')+
       (g.kakao ? '<a class="btn primary" href="kakaotalk://web/openExternal?url=' + encodeURIComponent(url) + '">인터넷 앱으로 열기</a>' : '')+
@@ -91,6 +104,8 @@
     sheet.hidden = false;
     sheet.onclick = function(e){ if (e.target === sheet) closeSheet(); };
     sheet.querySelector('[data-ok]').onclick = closeSheet;
+    var now = sheet.querySelector('[data-now]');
+    if (now) now.onclick = function(){ closeSheet(); doInstall(); };
     var cp = sheet.querySelector('[data-cp]');
     if (cp) cp.onclick = function(){
       var inp = sheet.querySelector('input'); inp.select();
@@ -123,7 +138,8 @@
     bar.querySelector('.go').onclick = doInstall;
     bar.querySelector('.x').onclick = function(){ lsSet(K_CLOSED, Date.now()); render(); };
   }
-  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred = e; render(); });
+  // 크롬은 화면을 조금 써 본 뒤에야 '바로 설치' 신호를 줍니다. 안내 창이 열려 있을 때 신호가 오면 바로 설치 단추를 띄워요.
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred = e; render(); if (!sheet.hidden) openSheet(); });
   window.addEventListener('appinstalled', function(){ deferred = null; closeSheet(); render(); toast('설치되었어요! 홈 화면의 ‘' + NAME + '’를 눌러 보세요.'); });
   window.addEventListener('message', function(e){
     var d = e.data;
