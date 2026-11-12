@@ -141,7 +141,9 @@
     $('helloName').textContent = profile.name;
     $('helloMok').textContent = profile.mokjang;
     $('helloTitle').textContent = profile.mokjang === '교역자' ? ' 님' : ' 성도님';
-    $('helloMsg').textContent = CFG.GREETING || '오늘도 은혜로운 예배 되세요!';
+    $('helloMsg').textContent = kst().dow === 0
+      ? (CFG.GREETING_SUNDAY || '오늘도 은혜로운 예배 되세요!')
+      : (CFG.GREETING_WEEKDAY || '오늘도 주님 안에서 평안하세요.');
     $('pillText').textContent = profile.name + ' · ' + profile.mokjang;
     const b = $('attBadge');
     if (last && last.date === kst().date) { b.className = 'badge on'; b.textContent = '오늘 출석 완료 · ' + last.service; }
