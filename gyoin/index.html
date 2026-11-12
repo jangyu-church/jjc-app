@@ -16,7 +16,7 @@
 /* 화면 모드(자동/라이트/나이트)를 화면이 그려지기 전에 적용 */
 try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}
 </script>
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="app.css?v=5">
 </head>
 <body>
 
@@ -183,8 +183,8 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
 
 <div id="toast" class="toast" hidden></div>
 
-<script src="config.js"></script>
+<script src="config.js?v=5"></script>
 <script src="vendor/html5-qrcode.min.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

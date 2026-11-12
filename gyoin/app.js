@@ -93,13 +93,14 @@
       showMain();
     }
     bindEvents();
+    showInstallBar();
     flushQueue();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
   function showMain() {
     $('onboard').hidden = true; $('main').hidden = false;
-    renderHome(); renderMe(); renderStaff(); showInstallBar();
+    renderHome(); renderMe(); renderStaff();
     if (pendingCheckin) { const p = pendingCheckin; pendingCheckin = null; startUrlCheckin(p.loc); }
   }
 
@@ -363,9 +364,12 @@
     $('imBody').innerHTML = installSteps(); $('installModal').hidden = false;
   }
   function showInstallBar() {
-    if (isStandalone() || !profile) return;
+    if (isStandalone()) return;
     const closed = store.get('jjc_install_closed', 0);
     if (closed && Date.now() - closed < 3 * 24 * 3600 * 1000) return;   // ✕ 누르면 3일 쉬기
+    if (isKakao) $('installBar').querySelector('.ib-tx').innerHTML = '<b>카카오톡 밖에서 열어 주세요</b>그래야 설치하고 계속 쓸 수 있어요';
+    if (isKakao) $('ibGo').textContent = '열기';
+    $('installBar').classList.toggle('low', !profile);
     $('installBar').hidden = false;
   }
   window.addEventListener('appinstalled', () => { $('installBar').hidden = true; });
@@ -379,7 +383,7 @@
       e.preventDefault();
       profile = { name: $('obName').value.trim(), mokjang: $('obMokjang').value, phone4: $('obPhone').value.trim() };
       if (!profile.name || !/^\d{4}$/.test(profile.phone4)) { toast('이름과 숫자 4자리를 확인해 주세요'); return; }
-      store.set('jjc_profile', profile); showMain();
+      store.set('jjc_profile', profile); showMain(); $('installBar').classList.remove('low');
     });
     $('meForm').addEventListener('submit', e => {
       e.preventDefault();

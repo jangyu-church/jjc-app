@@ -209,3 +209,7 @@ input:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(59,
 .im-body{font-size:17px;line-height:1.7}
 .im-body ol{margin:6px 0 10px;padding-left:22px}
 .im-body li{margin-bottom:6px}
+
+/* 등록 화면에서는 아래 메뉴가 없으므로 막대를 화면 맨 아래에 */
+.install-bar.low{bottom:calc(12px + env(safe-area-inset-bottom))}
+.screen{padding-bottom:96px}
