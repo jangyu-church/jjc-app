@@ -1,0 +1,204 @@
+{
+  "_설명": "앱 링크 설정. url이 비어 있으면 화면에 '준비 중'으로 보입니다. 주소를 채우고 push하면 바로 열립니다. special: summary=목장별 출석 현황(앱 안 화면), options=여러 버전 중 선택. bg/fg=아이콘 바탕색/제목색. img=그 앱의 실제 아이콘 그림(없으면 icon 이모지 사용). open/close=시즌 앱이 보이는 기간(예: \"2026-11-29\"). open 칸이 있는데 비어 있으면 숨김, close가 비어 있으면 계속 보임. special: mokja=목자 앱(목장 열쇠는 여기에 적지 않고 각 목자 폰에만 저장). staff 항목의 role=pastor 는 목회자 PIN으로만 보임",
+  "sections": [
+    {
+      "id": "worship",
+      "title": "예배 · 말씀",
+      "bg": "#FFF3C4",
+      "fg": "#F0A800",
+      "items": [
+        {
+          "id": "word",
+          "icon": "📖",
+          "title": "말씀 자료실",
+          "desc": "주일 설교 요약 · 목장 모임 교재",
+          "url": "https://jangyu-church.github.io/jjc-app/word/",
+          "img": "icons/apps/word.png"
+        },
+        {
+          "id": "jubo",
+          "icon": "📰",
+          "title": "모바일 주보",
+          "desc": "이번 주 주보 보기",
+          "url": "https://jangyu-church.github.io/jjc-app/jubo/",
+          "img": "icons/apps/jubo.png"
+        }
+      ]
+    },
+    {
+      "id": "grow",
+      "title": "양육 · 동아리",
+      "bg": "#D3F9EC",
+      "fg": "#0CA678",
+      "items": [
+        {
+          "id": "pilsa",
+          "icon": "✍️",
+          "title": "쓰다보면",
+          "desc": "성경필사 동아리",
+          "url": "https://jangyu-church.github.io/pilsa/",
+          "img": "icons/apps/pilsa.png"
+        },
+        {
+          "id": "running",
+          "icon": "🏃",
+          "title": "뛰다보면",
+          "desc": "함께 달리기",
+          "url": "https://jangyu-church.github.io/running/",
+          "img": "icons/apps/running.png"
+        },
+        {
+          "id": "deungbul",
+          "icon": "🏮",
+          "title": "등불 스터디",
+          "desc": "청소년 공부 메이트",
+          "url": "https://deungbul-study.netlify.app/",
+          "img": "icons/apps/deungbul.png"
+        },
+        {
+          "id": "gift",
+          "icon": "🎁",
+          "title": "영적 은사 코드별 안내",
+          "desc": "내 은사 코드 설명 보기",
+          "options": [
+            {
+              "label": "Claude판",
+              "url": "https://claude.ai/artifact/WqLnMmbA3jWnp9u1wPdaoJ"
+            },
+            {
+              "label": "Gemini판",
+              "url": "https://claude.ai/artifact/N752JkmHG3DZ58qkdH3GDE"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "season",
+      "title": "절기 · 전도",
+      "bg": "#FFE3E3",
+      "fg": "#FF6B6B",
+      "items": [
+        {
+          "id": "taesinja",
+          "icon": "💌",
+          "title": "태신자 작정",
+          "desc": "전도할 분을 정하고 기도해요",
+          "url": "https://script.google.com/macros/s/AKfycbzY0T5VgGPEYHhSdo6qdOnFwCPSJZHKA41uH3QTWecPxWPTOEgk7_Aq0hPO963n9dTF/exec",
+          "open": "",
+          "close": ""
+        },
+        {
+          "id": "feast",
+          "icon": "🎉",
+          "title": "예수사랑큰잔치 작정 현황",
+          "desc": "모두의 작정 숫자 (이름은 안 나와요)",
+          "url": "https://script.google.com/macros/s/AKfycbzY0T5VgGPEYHhSdo6qdOnFwCPSJZHKA41uH3QTWecPxWPTOEgk7_Aq0hPO963n9dTF/exec?view=status",
+          "open": "",
+          "close": ""
+        },
+        {
+          "id": "thanks8",
+          "icon": "🙏",
+          "title": "8일간 감사 묵상 챌린지",
+          "desc": "매일 감사를 적어 보세요",
+          "url": "https://jangyu-gamsa.netlify.app/",
+          "open": "2026-11-08",
+          "close": "2026-11-15",
+          "img": "icons/apps/thanks8.png"
+        },
+        {
+          "id": "advent",
+          "icon": "🕯️",
+          "title": "2026 대림절 묵상",
+          "desc": "매일 만나는 성경 인물",
+          "url": "https://jangyu-church.github.io/advent/",
+          "open": "2026-11-12",
+          "close": "2026-12-25",
+          "img": "icons/apps/advent.png"
+        }
+      ]
+    }
+  ],
+  "staff": {
+    "title": "사역자",
+    "bg": "#EAF4FF",
+    "fg": "#3A8FD9",
+    "items": [
+      {
+        "id": "attend",
+        "icon": "✅",
+        "title": "목장별 출석 체크",
+        "desc": "오늘 QR 출석 현황 보기",
+        "special": "summary"
+      },
+      {
+        "id": "mokjang",
+        "icon": "🗂️",
+        "title": "목장관리앱",
+        "desc": "목회자용 · 전체 목장 관리 (비밀번호)",
+        "url": "https://jangyu-church.github.io/jjc-app/mokjang/",
+        "img": "icons/apps/mokjang.png",
+        "role": "pastor"
+      },
+      {
+        "id": "mokja",
+        "icon": "🌿",
+        "title": "목자 앱",
+        "desc": "카톡으로 받은 우리 목장 링크를 한 번 등록하면 바로 열립니다",
+        "url": "https://jangyu-church.github.io/jjc-app/mokja/",
+        "img": "icons/apps/mokja.png",
+        "special": "mokja",
+        "guide": "https://jangyu-church.github.io/jjc-app/guide/"
+      },
+      {
+        "id": "feast-att",
+        "icon": "📋",
+        "title": "예수사랑큰잔치 태신자 출석부",
+        "desc": "태신자 출석 기록 (비밀번호 필요)",
+        "url": "https://script.google.com/macros/s/AKfycbxR0y0pkb4heEJaGB0cAPYj8tUWhCAzYLetPLQ-GcZxosovVfLvGJM-ycLxuljtybUszA/exec"
+      },
+      {
+        "id": "jubo-edit",
+        "icon": "📝",
+        "title": "모바일 주보 제작",
+        "desc": "주보 만들기 (담임목사·부목사·행정간사)",
+        "url": "https://jangyu-church.github.io/jjc-app/jubo-edit/",
+        "img": "icons/apps/jubo-edit.png"
+      },
+      {
+        "id": "conti",
+        "icon": "🎼",
+        "title": "예배콘티",
+        "desc": "찬양팀 콘티 · 악보 · 안내서",
+        "url": "https://www.heavenin.org/worship-conti/"
+      },
+      {
+        "id": "finance",
+        "icon": "🧾",
+        "title": "재정 청구",
+        "desc": "영수증 찍어서 청구하기",
+        "url": "https://jangyu-church.github.io/finance-claim/",
+        "img": "icons/apps/finance.png"
+      },
+      {
+        "id": "finance-admin",
+        "icon": "💼",
+        "title": "재정 관리",
+        "desc": "재정부용 · 청구 승인·지급 (관리 비밀번호)",
+        "url": "https://jangyu-church.github.io/finance-claim/admin/",
+        "img": "icons/apps/finance-admin.png"
+      },
+      {
+        "id": "health",
+        "icon": "🩺",
+        "title": "건강 물음표",
+        "desc": "AI 건강 문답 (사용할 때마다 비용 발생)",
+        "url": "https://jangyu-church.github.io/health-app/",
+        "img": "icons/apps/health.png",
+        "role": "pastor"
+      }
+    ],
+    "pastorTitle": "목회자 전용"
+  }
+}

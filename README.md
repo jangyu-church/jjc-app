@@ -14,6 +14,7 @@
 | `pyeonseong/` | 목장 편성 | https://jangyu-church.github.io/jjc-app/pyeonseong/ |
 | `mokjang/` | 목장관리 교역자 화면 (비밀번호) | https://jangyu-church.github.io/jjc-app/mokjang/ |
 | `mokja/` | 목자 앱 (목장 관리) | 목장마다 다른 링크: `…/jjc-app/mokja/?k=목장열쇠` (열쇠는 교회에서 따로 전달) |
+| `gyoin/` | 교인앱 (QR 출석 · 앱 모음) — 껍데기가 아니라 앱 전체가 이 폴더에 있음. 안내는 `gyoin/GUIDE.md` | https://jangyu-church.github.io/jjc-app/gyoin/ |
 
 각 폴더는 실제 앱(구글 앱스 스크립트 웹 앱)을 화면 가득 담아 보여 줍니다. 실제 앱 주소와 자료는 그대로입니다.
 

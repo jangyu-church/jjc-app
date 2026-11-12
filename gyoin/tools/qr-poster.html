@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>예배 출석 QR 만들기</title>
+<style>
+body{font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;margin:0;padding:20px;background:#F6F8FC;color:#1b2a38}
+.panel{max-width:520px;margin:0 auto 20px;background:#fff;border-radius:14px;padding:16px}
+label{display:block;font-weight:700;margin:10px 0 4px}
+input,select{width:100%;padding:10px;font-size:16px;border:1px solid #cdd7e1;border-radius:10px;box-sizing:border-box}
+button{margin-top:14px;padding:12px 18px;font-size:16px;font-weight:700;border:0;border-radius:10px;background:#3A8FD9;color:#fff}
+.poster{width:620px;max-width:100%;margin:0 auto;background:#fff;border:3px solid #3A8FD9;border-radius:20px;padding:36px 24px;text-align:center}
+.poster h1{margin:0;font-size:34px;color:#3A8FD9}
+.poster h2{margin:6px 0 18px;font-size:26px}
+.poster img{width:340px;max-width:80%}
+.poster p{font-size:20px;margin:14px 0 0;line-height:1.5}
+.small{font-size:13px;color:#6b7a8a;word-break:break-all;margin-top:12px}
+@media print{body{background:#fff;padding:0}.panel{display:none}.poster{border-width:4px;margin-top:20px}}
+</style></head><body>
+<div class="panel">
+  <h3 style="margin-top:0">예배 출석 QR 만들기</h3>
+  <label>교인앱 주소 (끝에 / 포함)</label>
+  <input id="base" value="https://jangyu-church.github.io/jjc-app/gyoin/">
+  <label>장소</label>
+  <select id="loc"><option value="main_hall">은혜홀 (main_hall)</option><option value="faith_hall">믿음홀 (faith_hall)</option></select>
+  <button id="go" type="button">QR 만들기</button>
+  <button id="print" type="button" style="background:#FF6B6B">인쇄하기</button>
+</div>
+<div class="poster">
+  <h1>장유중앙교회</h1>
+  <h2>예배 출석 QR</h2>
+  <img id="qr" alt="출석 QR">
+  <p>① 교인앱을 열어 <b>[예배 QR 출석 체크]</b><br>② 또는 폰 기본 카메라로 이 QR을 찍어 주세요</p>
+  <div class="small" id="url"></div>
+</div>
+<script src="../vendor/qrcode.js"></script>
+<script>
+function make(){
+  var url = document.getElementById('base').value.trim() + '?action=checkin&loc=' + document.getElementById('loc').value;
+  var q = qrcode(0, 'M'); q.addData(url); q.make();
+  document.getElementById('qr').src = q.createDataURL(10, 2);
+  document.getElementById('url').textContent = url;
+}
+document.getElementById('go').onclick = make;
+document.getElementById('print').onclick = function(){ make(); window.print(); };
+make();
+</script></body></html>

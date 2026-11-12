@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>장유중앙교회 교인앱</title>
+<meta name="theme-color" content="#F6F8FC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="장유중앙교회">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<script>
+/* 화면 모드(자동/라이트/나이트)를 화면이 그려지기 전에 적용 */
+try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}
+</script>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- 처음 등록 -->
+<section id="onboard" class="screen" hidden>
+  <div class="ob-card">
+    <img src="icons/icon-192.png" alt="" class="ob-logo">
+    <h1>장유중앙교회에<br>오신 것을 환영합니다</h1>
+    <p class="muted">처음 한 번만 적어 주세요. 비밀번호는 필요 없고, 이 폰에만 저장됩니다.</p>
+    <form id="obForm" autocomplete="off">
+      <label>성명<input id="obName" required maxlength="20" placeholder="예) 홍길동" autocomplete="name"></label>
+      <label>소속 목장
+        <select id="obMokjang" required></select>
+      </label>
+      <label>휴대폰 뒷자리 4자리
+        <input id="obPhone" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="예) 1234">
+      </label>
+      <button class="btn primary big" type="submit">시작하기</button>
+    </form>
+    <p id="obPending" class="notice" hidden>등록이 끝나면 바로 출석 처리됩니다.</p>
+  </div>
+</section>
+
+<!-- 메인 -->
+<main id="main" hidden>
+  <header class="top">
+    <div class="top-title"><div><small>JANGYU JUNGANG CHURCH</small>장유중앙교회 교인앱</div></div>
+    <button id="btnProfile" class="pill" type="button" aria-label="내 정보 수정"><span id="pillText"></span><span class="pen">✎</span></button>
+  </header>
+
+  <!-- 홈 탭 -->
+  <section id="tab-home" class="tab">
+    <div class="banner">
+      <div class="hello"><span id="helloName"></span> 성도님 <span class="hello-mok">(<span id="helloMok"></span>)</span></div>
+      <div class="hello-sub" id="helloMsg"></div>
+      <div id="attBadge" class="badge off">오늘 출석 전</div>
+      <button id="btnScan" class="btn qr big" type="button">
+        <span class="qr-ic">▦</span> 예배 QR 출석 체크
+      </button>
+      <div id="pendingNote" class="pending" hidden></div>
+    </div>
+    <div id="sections"></div>
+  </section>
+
+  <!-- 사역자 탭 -->
+  <section id="tab-staff" class="tab" hidden>
+    <div id="staffLock" class="lock" hidden>
+      <div class="lock-ic">🔒</div>
+      <h2>사역자 · 목회자 전용</h2>
+      <p class="muted">받으신 PIN 숫자 4자리를 입력해 주세요</p>
+      <form id="pinForm" autocomplete="off">
+        <input id="pinInput" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••" autocomplete="off">
+        <button class="btn primary" type="submit">열기</button>
+      </form>
+      <p id="pinErr" class="err" hidden>PIN이 맞지 않습니다</p>
+    </div>
+    <div id="staffBody" hidden></div>
+  </section>
+
+  <!-- 내 정보 탭 -->
+  <section id="tab-me" class="tab" hidden>
+    <div class="card">
+      <h2>내 정보</h2>
+      <form id="meForm" autocomplete="off">
+        <label>성명<input id="meName" required maxlength="20"></label>
+        <label>소속 목장<select id="meMokjang"></select></label>
+        <label>휴대폰 뒷자리 4자리<input id="mePhone" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4"></label>
+        <button class="btn primary" type="submit">저장</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>함께 출석할 가족 · 어르신</h2>
+      <p class="muted small">QR 출석할 때 한 번에 같이 체크할 수 있어요.</p>
+      <ul id="famList" class="fam"></ul>
+      <form id="famForm" class="fam-add" autocomplete="off">
+        <input id="famName" required maxlength="20" placeholder="이름">
+        <input id="famPhone" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="뒷자리(선택)">
+        <button class="btn" type="submit">추가</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>화면 모드</h2>
+      <div class="seg" id="themeSeg">
+        <button type="button" data-theme-set="auto">🌗 자동</button>
+        <button type="button" data-theme-set="light">☀️ 라이트</button>
+        <button type="button" data-theme-set="dark">🌙 나이트</button>
+      </div>
+      <p class="muted small" style="margin:10px 0 0">자동은 폰 설정(밝게/어둡게)을 따라갑니다.</p>
+    </div>
+    <div class="card">
+      <h2>홈 화면에 설치</h2>
+      <p id="installHint" class="muted small"></p>
+      <button id="btnInstall" class="btn primary" type="button" hidden>홈 화면에 설치하기</button>
+    </div>
+    <div class="card">
+      <button id="btnReset" class="btn danger" type="button">이 폰의 내 정보 지우기</button>
+      <p class="muted small" id="verLine"></p>
+    </div>
+  </section>
+
+  <nav class="tabbar">
+    <button data-tab="home" class="on"><span>🏠</span>홈</button>
+    <button id="tabScan" class="scan" type="button"><span>▦</span>QR 출석</button>
+    <button data-tab="staff"><span>🔑</span>사역자·목회자</button>
+    <button data-tab="me"><span>👤</span>내 정보</button>
+  </nav>
+</main>
+
+<!-- QR 출석 시트 -->
+<div id="scanModal" class="modal" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <strong>예배 QR 출석</strong>
+      <button id="scanClose" class="x" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div id="reader"></div>
+    <p id="scanMsg" class="muted small center">예배실에 붙은 QR을 네모 안에 맞춰 주세요</p>
+    <div id="companions" class="comp" hidden>
+      <div class="comp-title">함께 출석할 분 (체크하면 같이 전송)</div>
+      <div id="compList"></div>
+    </div>
+    <details class="comp-add">
+      <summary>+ 오늘만 함께 온 분 추가</summary>
+      <form id="tmpForm" class="fam-add" autocomplete="off">
+        <input id="tmpName" required maxlength="20" placeholder="이름">
+        <input id="tmpPhone" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="뒷자리(선택)">
+        <button class="btn" type="submit">추가</button>
+      </form>
+    </details>
+    <p class="muted small center">카메라가 안 열리면 폰 기본 카메라로 예배실 QR을 찍어 주세요.</p>
+  </div>
+</div>
+
+<!-- 동반 선택(QR 주소로 바로 들어왔을 때) -->
+<div id="confirmModal" class="modal" hidden>
+  <div class="sheet">
+    <div class="sheet-head"><strong>출석 확인</strong><button id="cfClose" class="x" type="button" aria-label="닫기">✕</button></div>
+    <p class="muted">같이 출석할 분을 골라 주세요.</p>
+    <div id="cfList" class="comp-list"></div>
+    <button id="cfGo" class="btn primary big" type="button">출석하기</button>
+  </div>
+</div>
+
+<!-- 출석 완료 -->
+<div id="doneModal" class="modal" hidden>
+  <div class="sheet done">
+    <div class="done-ic">✅</div>
+    <h2 id="doneTitle">출석 완료!</h2>
+    <p id="doneSub" class="muted"></p>
+    <ul id="doneList" class="done-list"></ul>
+    <button id="goJubo" class="btn primary big" type="button">📰 오늘의 모바일 주보 보기</button>
+    <button id="goWord" class="btn big" type="button">📖 말씀 자료실 열기</button>
+    <button id="doneClose" class="btn link" type="button">닫기</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="config.js"></script>
+<script src="vendor/html5-qrcode.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
