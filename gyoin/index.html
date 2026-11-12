@@ -45,6 +45,7 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
   <header class="top">
     <div class="top-title"><div><small>JANGYU JUNGANG CHURCH</small>장유중앙교회 교인앱</div></div>
     <button id="btnProfile" class="pill" type="button" aria-label="내 정보 수정"><span id="pillText"></span><span class="pen">✎</span></button>
+    <button id="btnTheme" class="icon-btn" type="button" aria-label="화면 모드 바꾸기"></button>
   </header>
 
   <!-- 홈 탭 -->
@@ -96,15 +97,6 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
         <input id="famPhone" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="뒷자리(선택)">
         <button class="btn" type="submit">추가</button>
       </form>
-    </div>
-    <div class="card">
-      <h2>화면 모드</h2>
-      <div class="seg" id="themeSeg">
-        <button type="button" data-theme-set="auto">🌗 자동</button>
-        <button type="button" data-theme-set="light">☀️ 라이트</button>
-        <button type="button" data-theme-set="dark">🌙 나이트</button>
-      </div>
-      <p class="muted small" style="margin:10px 0 0">자동은 폰 설정(밝게/어둡게)을 따라갑니다.</p>
     </div>
     <div class="card">
       <h2>홈 화면에 설치</h2>

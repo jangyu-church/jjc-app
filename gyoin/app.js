@@ -60,6 +60,7 @@
   function openUrl(url) { if (url) location.href = url; }
 
   /* ---------- 화면 모드: 자동 / 라이트 / 나이트 ---------- */
+  const THEME_NAME = { auto: '자동', light: '라이트', dark: '나이트' };
   function getTheme() { try { const t = localStorage.getItem('jjc_theme'); return t === 'light' || t === 'dark' ? t : 'auto'; } catch (e) { return 'auto'; } }
   function applyTheme(t) {
     const root = document.documentElement;
@@ -67,7 +68,8 @@
     try { if (t === 'auto') localStorage.removeItem('jjc_theme'); else localStorage.setItem('jjc_theme', t); } catch (e) {}
     const dark = t === 'dark' || (t === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', dark ? '#14161C' : '#F6F8FC');
-    document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.themeSet === t));
+    const tb = $('btnTheme');
+    if (tb) { tb.textContent = t === 'dark' ? '🌙' : t === 'light' ? '☀️' : '🌗'; tb.title = '화면 모드: ' + THEME_NAME[t]; }
   }
   if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(getTheme()));
 
@@ -380,7 +382,11 @@
       if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; $('btnInstall').hidden = true;
     });
     $('btnScan').addEventListener('click', openScanner);
-    $('themeSeg').addEventListener('click', e => { const b = e.target.closest('[data-theme-set]'); if (b) applyTheme(b.dataset.themeSet); });
+    // 상단 아이콘을 누를 때마다 자동 → 라이트 → 나이트 순서로 바뀜
+    $('btnTheme').addEventListener('click', () => {
+      const next = { auto: 'light', light: 'dark', dark: 'auto' }[getTheme()];
+      applyTheme(next); toast('화면 모드: ' + THEME_NAME[next]);
+    });
     $('btnProfile').addEventListener('click', () => { document.querySelector('.tabbar [data-tab="me"]').click(); $('meName').focus(); });
     $('scanClose').addEventListener('click', () => { stopScanner(); $('scanModal').hidden = true; });
     $('cfClose').addEventListener('click', () => { $('confirmModal').hidden = true; });
