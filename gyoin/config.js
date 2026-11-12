@@ -4,7 +4,7 @@
  *                 비어 있으면 '연습 모드'로 동작합니다(구글 시트에 저장되지 않음).
  * - STAFF_PIN_SHA256 / PASTOR_PIN_SHA256 : 사역자 PIN, 목회자 PIN의 SHA-256 값(PIN 자체는 적지 않습니다).
  *                 목회자 PIN으로 들어가면 사역자용 앱도 모두 보입니다. 바꾸는 법은 GUIDE.md 3번.
- * - MOKJANGS    : 처음 등록할 때 고르는 목장 목록
+ * - MOKJANGS    : 처음 등록할 때 고르는 소속 목록 (목장 + 교역자)
  * - LOCATIONS   : QR의 loc 값 → 화면에 보일 이름
  */
 window.JJC_CONFIG = {
@@ -15,7 +15,8 @@ window.JJC_CONFIG = {
   PASTOR_PIN_SHA256: "45f7e2974982124d00b1e5f06a2732d1e993e0b2875a7dfda572e35d99783db2",
   MOKJANGS: [
     "충성목장", "사랑목장", "소망목장", "감사목장", "은혜목장",
-    "향기목장", "평안목장", "청년목장", "VIP목장"
+    "향기목장", "평안목장", "청년목장", "VIP목장",
+    "교역자"
   ],
   LOCATIONS: {
     main_hall: "은혜홀",

@@ -25,10 +25,10 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
   <div class="ob-card">
     <img src="icons/icon-192.png" alt="" class="ob-logo">
     <h1>장유중앙교회에<br>오신 것을 환영합니다</h1>
-    <p class="muted">처음 한 번만 적어 주세요. 비밀번호는 필요 없고, 이 폰에만 저장됩니다.</p>
+    <p class="muted">처음 한 번만 적어 주세요. 교역자는 소속에서 "교역자"를 골라 주세요. 비밀번호는 필요 없고, 이 폰에만 저장됩니다.</p>
     <form id="obForm" autocomplete="off">
       <label>성명<input id="obName" required maxlength="20" placeholder="예) 홍길동" autocomplete="name"></label>
-      <label>소속 목장
+      <label>소속 (목장 · 교역자)
         <select id="obMokjang" required></select>
       </label>
       <label>휴대폰 뒷자리 4자리
@@ -51,7 +51,7 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
   <!-- 홈 탭 -->
   <section id="tab-home" class="tab">
     <div class="banner">
-      <div class="hello"><span id="helloName"></span> 성도님 <span class="hello-mok">(<span id="helloMok"></span>)</span></div>
+      <div class="hello"><span id="helloName"></span><span id="helloTitle"> 성도님</span> <span class="hello-mok">(<span id="helloMok"></span>)</span></div>
       <div class="hello-sub" id="helloMsg"></div>
       <div id="attBadge" class="badge off">오늘 출석 전</div>
       <button id="btnScan" class="btn qr big" type="button">
@@ -83,7 +83,7 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
       <h2>내 정보</h2>
       <form id="meForm" autocomplete="off">
         <label>성명<input id="meName" required maxlength="20"></label>
-        <label>소속 목장<select id="meMokjang"></select></label>
+        <label>소속 (목장 · 교역자)<select id="meMokjang"></select></label>
         <label>휴대폰 뒷자리 4자리<input id="mePhone" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4"></label>
         <button class="btn primary" type="submit">저장</button>
       </form>
@@ -162,6 +162,22 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
     <button id="goJubo" class="btn primary big" type="button">📰 오늘의 모바일 주보 보기</button>
     <button id="goWord" class="btn big" type="button">📖 말씀 자료실 열기</button>
     <button id="doneClose" class="btn link" type="button">닫기</button>
+  </div>
+</div>
+
+<!-- 홈 화면 설치 안내 막대 -->
+<div id="installBar" class="install-bar" hidden>
+  <img src="icons/icon-192.png" alt="">
+  <div class="ib-tx"><b>홈 화면에 설치하기</b>아이콘 하나로 바로 열려요</div>
+  <button id="ibGo" class="ib-go" type="button">설치</button>
+  <button id="ibClose" class="ib-x" type="button" aria-label="닫기">✕</button>
+</div>
+
+<!-- 설치 방법 안내 -->
+<div id="installModal" class="modal" hidden>
+  <div class="sheet">
+    <div class="sheet-head"><strong>홈 화면에 설치하는 방법</strong><button id="imClose" class="x" type="button" aria-label="닫기">✕</button></div>
+    <div id="imBody" class="im-body"></div>
   </div>
 </div>
 

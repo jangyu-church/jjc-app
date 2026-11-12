@@ -99,7 +99,7 @@
 
   function showMain() {
     $('onboard').hidden = true; $('main').hidden = false;
-    renderHome(); renderMe(); renderStaff();
+    renderHome(); renderMe(); renderStaff(); showInstallBar();
     if (pendingCheckin) { const p = pendingCheckin; pendingCheckin = null; startUrlCheckin(p.loc); }
   }
 
@@ -139,6 +139,7 @@
   function renderHome() {
     $('helloName').textContent = profile.name;
     $('helloMok').textContent = profile.mokjang;
+    $('helloTitle').textContent = profile.mokjang === '교역자' ? ' 님' : ' 성도님';
     $('helloMsg').textContent = CFG.GREETING || '오늘도 은혜로운 예배 되세요!';
     $('pillText').textContent = profile.name + ' · ' + profile.mokjang;
     const b = $('attBadge');
@@ -337,9 +338,41 @@
     $('cfGo').onclick = () => { const p = chosen($('cfList'), list); $('confirmModal').hidden = true; doCheckin(p, loc); };
   }
 
+  /* ---------- 홈 화면 설치 안내 ---------- */
+  const UA = navigator.userAgent;
+  const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(UA);
+  const isKakao = /KAKAOTALK/i.test(UA);
+  const isSamsung = /SamsungBrowser/i.test(UA);
+  function installSteps() {
+    const here = location.origin + location.pathname;
+    if (isKakao && !isIOS) return '<p>카카오톡 안에서는 설치가 안 돼요. 아래 버튼으로 크롬에서 연 다음 설치해 주세요.</p>' +
+      '<a class="btn primary big" href="intent://' + here.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end">크롬으로 열기</a>';
+    if (isKakao) return '<ol><li>화면 아래(또는 위)의 <b>공유 · 더보기</b> 버튼을 누릅니다.</li><li><b>Safari로 열기</b>를 누릅니다.</li><li>사파리에서 아래 <b>공유(□↑)</b> → <b>홈 화면에 추가</b>를 누릅니다.</li></ol>';
+    if (isIOS) return '<ol><li>사파리 아래쪽 <b>공유(□↑)</b> 버튼을 누릅니다.</li><li>목록을 내려 <b>홈 화면에 추가</b>를 누릅니다.</li><li>오른쪽 위 <b>추가</b>를 누르면 끝!</li></ol><p class="muted small">크롬 등 다른 앱으로 열었다면 사파리로 다시 열어 주세요.</p>';
+    if (isSamsung) return '<ol><li>아래쪽 <b>메뉴(≡)</b>를 누릅니다.</li><li><b>현재 페이지 추가</b> → <b>홈 화면</b>을 누릅니다.</li><li><b>추가</b>를 누르면 끝!</li></ol>';
+    return '<ol><li>오른쪽 위 <b>메뉴(⋮)</b>를 누릅니다.</li><li><b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 누릅니다.</li><li><b>설치</b>를 누르면 끝!</li></ol>';
+  }
+  async function doInstall() {
+    if (deferredInstall) {
+      deferredInstall.prompt();
+      const c = await deferredInstall.userChoice; deferredInstall = null;
+      if (c && c.outcome === 'accepted') { $('installBar').hidden = true; $('btnInstall').hidden = true; }
+      return;
+    }
+    $('imBody').innerHTML = installSteps(); $('installModal').hidden = false;
+  }
+  function showInstallBar() {
+    if (isStandalone() || !profile) return;
+    const closed = store.get('jjc_install_closed', 0);
+    if (closed && Date.now() - closed < 3 * 24 * 3600 * 1000) return;   // ✕ 누르면 3일 쉬기
+    $('installBar').hidden = false;
+  }
+  window.addEventListener('appinstalled', () => { $('installBar').hidden = true; });
+
   /* ---------- 이벤트 ---------- */
   let deferredInstall = null;
-  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; $('btnInstall').hidden = false; });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; });
 
   function bindEvents() {
     $('obForm').addEventListener('submit', e => {
@@ -378,9 +411,11 @@
       ['jjc_profile', 'jjc_family', 'jjc_last', 'jjc_queue', 'jjc_theme', 'jjc_mokja_key'].forEach(store.del);
       location.replace(location.pathname);
     });
-    $('btnInstall').addEventListener('click', async () => {
-      if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; $('btnInstall').hidden = true;
-    });
+    $('btnInstall').addEventListener('click', doInstall);
+    $('ibGo').addEventListener('click', doInstall);
+    $('ibClose').addEventListener('click', () => { $('installBar').hidden = true; store.set('jjc_install_closed', Date.now()); });
+    $('imClose').addEventListener('click', () => { $('installModal').hidden = true; });
+    if (!isStandalone()) $('btnInstall').hidden = false;   // 내 정보 탭의 설치 버튼은 항상 보이게
     $('btnScan').addEventListener('click', openScanner);
     // 상단 아이콘을 누를 때마다 자동 → 라이트 → 나이트 순서로 바뀜
     $('btnTheme').addEventListener('click', () => {
