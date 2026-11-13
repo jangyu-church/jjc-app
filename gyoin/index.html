@@ -16,7 +16,7 @@
 /* 화면 모드(자동/라이트/나이트)를 화면이 그려지기 전에 적용 */
 try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}
 </script>
-<link rel="stylesheet" href="app.css?v=6">
+<link rel="stylesheet" href="app.css?v=7">
 </head>
 <body>
 
@@ -57,6 +57,7 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
       <button id="btnScan" class="btn qr big" type="button">
         <span class="qr-ic">▦</span> 예배 QR 출석 체크
       </button>
+      <button id="btnCard" class="btn ghost" type="button">🪪 내 교인 카드</button>
       <div id="pendingNote" class="pending" hidden></div>
     </div>
     <div id="sections"></div>
@@ -87,6 +88,19 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
         <label>휴대폰 뒷자리 4자리<input id="mePhone" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4"></label>
         <button class="btn primary" type="submit">저장</button>
       </form>
+    </div>
+    <div class="card">
+      <h2>내 교인 카드</h2>
+      <div class="photo-row">
+        <div id="photoThumb" class="photo-thumb"></div>
+        <div class="photo-btns">
+          <button id="btnPhotoPick" class="btn primary" type="button">📷 사진 찍기 · 고르기</button>
+          <button id="btnCardOpen" class="btn" type="button">카드 보기</button>
+          <button id="btnPhotoDel" class="btn danger-soft" type="button" hidden>사진 지우기</button>
+        </div>
+      </div>
+      <input id="photoInput" type="file" accept="image/*" hidden>
+      <p class="muted small" style="margin:10px 0 0">사진은 <b>이 폰에만</b> 저장되고, 교회 서버나 구글 시트로 보내지지 않습니다.</p>
     </div>
     <div class="card">
       <h2>함께 출석할 가족 · 어르신</h2>
@@ -181,10 +195,25 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
   </div>
 </div>
 
+<!-- 내 교인 카드 -->
+<div id="cardModal" class="modal" hidden>
+  <div class="sheet">
+    <div class="sheet-head"><strong>내 교인 카드</strong><button id="cardClose" class="x" type="button" aria-label="닫기">✕</button></div>
+    <div class="idcard">
+      <div class="idc-top"><img src="icons/icon-192.png" alt=""><div><small>JANGYU JUNGANG CHURCH</small><b>장유중앙교회</b></div></div>
+      <div class="idc-photo" id="idcPhoto"></div>
+      <div class="idc-name" id="idcName"></div>
+      <div class="idc-mok" id="idcMok"></div>
+      <div class="idc-live"><span class="dot"></span><span id="idcTime"></span></div>
+    </div>
+    <p class="muted small center" style="margin:12px 0 0">장유중앙교회 안에서 쓰는 교인 카드입니다.<br>공식 신분증이 아니며, 교회의 확인을 받은 카드가 아닙니다.</p>
+  </div>
+</div>
+
 <div id="toast" class="toast" hidden></div>
 
-<script src="config.js?v=6"></script>
+<script src="config.js?v=7"></script>
 <script src="vendor/html5-qrcode.min.js"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

@@ -213,3 +213,24 @@ input:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(59,
 /* 등록 화면에서는 아래 메뉴가 없으므로 막대를 화면 맨 아래에 */
 .install-bar.low{bottom:calc(12px + env(safe-area-inset-bottom))}
 .screen{padding-bottom:96px}
+
+/* 내 교인 카드 */
+.btn.ghost{display:block;width:100%;margin-top:10px;background:rgba(255,255,255,.18);color:#fff;border:1.5px solid rgba(255,255,255,.45);padding:12px;font-size:16px}
+.btn.danger-soft{color:var(--err);border-color:var(--err-line)}
+.photo-row{display:flex;gap:14px;align-items:center}
+.photo-thumb{flex:none;width:84px;aspect-ratio:4/5;border-radius:14px;overflow:hidden;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:var(--muted)}
+.photo-thumb img,.idc-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-btns{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.photo-btns .btn{width:100%;font-size:15px;padding:11px 10px}
+.idcard{position:relative;overflow:hidden;border-radius:24px;padding:18px 18px 16px;text-align:center;color:#fff;background:var(--banner);box-shadow:0 14px 30px rgba(59,141,224,.3)}
+.idcard::before{content:"";position:absolute;right:-60px;top:-70px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.14)}
+.idc-top{position:relative;display:flex;align-items:center;gap:10px;text-align:left}
+.idc-top img{width:38px;height:38px;border-radius:50%;background:#fff}
+.idc-top small{display:block;font-size:9px;letter-spacing:.8px;opacity:.85}
+.idc-top b{font-size:18px}
+.idc-photo{position:relative;width:46%;max-width:190px;aspect-ratio:4/5;margin:16px auto 12px;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.22);border:3px solid rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:800}
+.idc-name{position:relative;font-size:24px;font-weight:800;letter-spacing:-.3px}
+.idc-mok{position:relative;font-size:16px;opacity:.95;margin-top:2px}
+.idc-live{position:relative;display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:6px 12px;border-radius:99px;background:rgba(0,0,0,.22);font-size:13px;font-variant-numeric:tabular-nums}
+.idc-live .dot{width:8px;height:8px;border-radius:50%;background:#5EF0B2;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}

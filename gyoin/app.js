@@ -145,6 +145,7 @@
       ? (CFG.GREETING_SUNDAY || '오늘도 은혜로운 예배 되세요!')
       : (CFG.GREETING_WEEKDAY || '오늘도 주님 안에서 평안하세요.');
     $('pillText').textContent = profile.name + ' · ' + profile.mokjang;
+    renderCard();
     const b = $('attBadge');
     if (last && last.date === kst().date) { b.className = 'badge on'; b.textContent = '오늘 출석 완료 · ' + last.service; }
     else { b.className = 'badge off'; b.textContent = '오늘 출석 전'; }
@@ -207,6 +208,44 @@
     const a = findApp('mokja');
     location.href = a.url + '?k=' + encodeURIComponent(k);
   }
+
+  /* ---------- 내 교인 카드: 사진은 이 폰에만 저장 ---------- */
+  const getPhoto = () => store.get('jjc_photo', '');
+  function readPhoto(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const W = 480, H = 600, c = document.createElement('canvas'); c.width = W; c.height = H;
+        const x = c.getContext('2d'), r = Math.max(W / img.width, H / img.height), w = img.width * r, h = img.height * r;
+        x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+        URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('read')); };
+      img.src = url;
+    });
+  }
+  function photoHtml(initial) {
+    const p = getPhoto();
+    return p ? '<img src="' + p + '" alt="내 사진">' : '<span>' + esc(initial || '?') + '</span>';
+  }
+  function renderCard() {
+    if (!profile) return;
+    const ini = (profile.name || '?').trim().charAt(0);
+    $('photoThumb').innerHTML = photoHtml(ini);
+    $('btnPhotoDel').hidden = !getPhoto();
+    $('idcPhoto').innerHTML = photoHtml(ini);
+    $('idcName').textContent = profile.name + (profile.mokjang === '교역자' ? ' 님' : ' 성도');
+    $('idcMok').textContent = profile.mokjang;
+  }
+  let cardTimer = null;
+  function tickCard() {
+    $('idcTime').textContent = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'long', timeStyle: 'medium' }).format(new Date());
+  }
+  function openCard() {
+    renderCard(); tickCard(); clearInterval(cardTimer); cardTimer = setInterval(tickCard, 1000);
+    $('cardModal').hidden = false;
+  }
+  function closeCard() { clearInterval(cardTimer); $('cardModal').hidden = true; }
 
   /* ---------- 내 정보 ---------- */
   function renderMe() {
@@ -392,7 +431,7 @@
       const ph = $('mePhone').value.trim();
       if (!/^\d{4}$/.test(ph)) { toast('뒷자리는 숫자 4자리예요'); return; }
       profile = { name: $('meName').value.trim(), mokjang: $('meMokjang').value, phone4: ph };
-      store.set('jjc_profile', profile); renderHome(); toast('저장했어요');
+      store.set('jjc_profile', profile); renderHome(); renderCard(); toast('저장했어요');
       document.querySelector('.tabbar [data-tab="home"]').click();
     });
     $('famForm').addEventListener('submit', e => {
@@ -414,7 +453,7 @@
     });
     $('btnReset').addEventListener('click', () => {
       if (!confirm('이 폰에 저장된 내 정보와 가족 목록을 지울까요? (구글 시트의 출석 기록은 그대로입니다)')) return;
-      ['jjc_profile', 'jjc_family', 'jjc_last', 'jjc_queue', 'jjc_theme', 'jjc_mokja_key'].forEach(store.del);
+      ['jjc_profile', 'jjc_family', 'jjc_last', 'jjc_queue', 'jjc_theme', 'jjc_mokja_key', 'jjc_photo'].forEach(store.del);
       location.replace(location.pathname);
     });
     $('btnInstall').addEventListener('click', doInstall);
@@ -423,6 +462,21 @@
     $('imClose').addEventListener('click', () => { $('installModal').hidden = true; });
     if (!isStandalone()) $('btnInstall').hidden = false;   // 내 정보 탭의 설치 버튼은 항상 보이게
     $('btnScan').addEventListener('click', openScanner);
+    $('btnCard').addEventListener('click', openCard);
+    $('btnCardOpen').addEventListener('click', openCard);
+    $('cardClose').addEventListener('click', closeCard);
+    $('btnPhotoPick').addEventListener('click', () => $('photoInput').click());
+    $('photoInput').addEventListener('change', async e => {
+      const f = e.target.files && e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      try { store.set('jjc_photo', await readPhoto(f)); renderCard(); toast('사진을 저장했어요'); }
+      catch (x) { toast('사진을 읽지 못했어요. 다른 사진으로 해 주세요'); }
+      if (!getPhoto()) toast('사진을 저장하지 못했어요 (저장 공간 부족)');
+    });
+    $('btnPhotoDel').addEventListener('click', () => {
+      if (!confirm('내 사진을 지울까요?')) return;
+      store.del('jjc_photo'); renderCard(); toast('사진을 지웠어요');
+    });
     // 상단 아이콘을 누를 때마다 자동 → 라이트 → 나이트 순서로 바뀜
     $('btnTheme').addEventListener('click', () => {
       const next = { auto: 'light', light: 'dark', dark: 'auto' }[getTheme()];
