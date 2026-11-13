@@ -13,7 +13,7 @@ window.JJC_CONFIG = {
   GREETING_WEEKDAY: "오늘도 주님 안에서 평안하세요.",   // 평일·토요일에 보이는 인사 멘트
   CARD_VERIFY: true,    // 교인 카드 "교회 확인" 기능. 준비되면 true 로 바꾸고 올리면 켜집니다.
   GAS_URL: "https://script.google.com/macros/s/AKfycbzm9LqE1AGsBaopu6V5p6WCoZ71lAmhI1rv198XVHU11eBP-QzJxHPxM1C9L2hceGYsUA/exec",
-  STAFF_PIN_SHA256: "207464be5b0c08c49a760dc937d8dfaf51d9e6368ef34a9ad580e97cd1a58f0d",
+  STAFF_PIN_SHA256: "45e1ca72b672acd1138ce84c32385e7795c7fe9610b826f6db9618a7d050c61e",
   PASTOR_PIN_SHA256: "45f7e2974982124d00b1e5f06a2732d1e993e0b2875a7dfda572e35d99783db2",
   MOKJANGS: [
     "충성목장", "사랑목장", "소망목장", "감사목장", "은혜목장",

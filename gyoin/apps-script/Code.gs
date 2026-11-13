@@ -10,7 +10,7 @@ var SHEET_NAME = '출석';
 var TZ = 'Asia/Seoul';
 var DEDUP_MINUTES = 5;          // 같은 날·같은 예배·같은 사람이 이 시간(분) 안에 또 찍으면 무시. 0이면 '예배당 1회만'
 // 사역자·목회자 PIN의 SHA-256 값 (config.js의 두 PIN 값과 같게). PIN 자체는 적지 않습니다.
-var PIN_HASHES = ['207464be5b0c08c49a760dc937d8dfaf51d9e6368ef34a9ad580e97cd1a58f0d', '45f7e2974982124d00b1e5f06a2732d1e993e0b2875a7dfda572e35d99783db2'];
+var PIN_HASHES = ['45e1ca72b672acd1138ce84c32385e7795c7fe9610b826f6db9618a7d050c61e', '45f7e2974982124d00b1e5f06a2732d1e993e0b2875a7dfda572e35d99783db2'];
 var LOCATIONS = { main_hall: '은혜홀', faith_hall: '믿음홀' };
 // 예배 시간표 (dow: 0=일 … 6=토, 시작 이상 ~ 끝 미만, 24시간제 "시:분")
 var SERVICES = [
