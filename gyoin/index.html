@@ -16,7 +16,7 @@
 /* 화면 모드(자동/라이트/나이트)를 화면이 그려지기 전에 적용 */
 try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}
 </script>
-<link rel="stylesheet" href="app.css?v=7">
+<link rel="stylesheet" href="app.css?v=8">
 </head>
 <body>
 
@@ -205,15 +205,17 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
       <div class="idc-name" id="idcName"></div>
       <div class="idc-mok" id="idcMok"></div>
       <div class="idc-live"><span class="dot"></span><span id="idcTime"></span></div>
+      <div class="idc-badge" id="idcBadge" hidden></div>
     </div>
-    <p class="muted small center" style="margin:12px 0 0">장유중앙교회 안에서 쓰는 교인 카드입니다.<br>공식 신분증이 아니며, 교회의 확인을 받은 카드가 아닙니다.</p>
+    <div id="cardAction" class="card-action" hidden></div>
+    <p class="muted small center" id="cardNote" style="margin:12px 0 0">장유중앙교회 안에서 쓰는 교인 카드입니다.<br>공식 신분증이 아니며, 교회의 확인을 받은 카드가 아닙니다.</p>
   </div>
 </div>
 
 <div id="toast" class="toast" hidden></div>
 
-<script src="config.js?v=7"></script>
+<script src="config.js?v=8"></script>
 <script src="vendor/html5-qrcode.min.js"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

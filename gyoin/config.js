@@ -11,6 +11,7 @@ window.JJC_CONFIG = {
   CHURCH_NAME: "장유중앙교회",
   GREETING_SUNDAY: "오늘도 은혜로운 예배 되세요!",      // 주일에 보이는 인사 멘트 (여기만 고치면 바뀝니다)
   GREETING_WEEKDAY: "오늘도 주님 안에서 평안하세요.",   // 평일·토요일에 보이는 인사 멘트
+  CARD_VERIFY: false,   // 교인 카드 "교회 확인" 기능. 준비되면 true 로 바꾸고 올리면 켜집니다.
   GAS_URL: "https://script.google.com/macros/s/AKfycbzm9LqE1AGsBaopu6V5p6WCoZ71lAmhI1rv198XVHU11eBP-QzJxHPxM1C9L2hceGYsUA/exec",
   STAFF_PIN_SHA256: "207464be5b0c08c49a760dc937d8dfaf51d9e6368ef34a9ad580e97cd1a58f0d",
   PASTOR_PIN_SHA256: "45f7e2974982124d00b1e5f06a2732d1e993e0b2875a7dfda572e35d99783db2",

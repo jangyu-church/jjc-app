@@ -166,7 +166,8 @@
     const common = Object.assign({}, st, { items: st.items.filter(a => a.role !== 'pastor') });
     const pastor = Object.assign({}, st, { title: st.pastorTitle || '목회자 전용', fg: '#7C5CE0', bg: '#EFE9FF', items: st.items.filter(a => a.role === 'pastor') });
     $('staffBody').innerHTML = '<div class="role-bar"><span>' + (r === 'pastor' ? '목회자로 열림' : '사역자로 열림') + '</span><button type="button" id="btnLock">🔒 잠그기</button></div>' +
-      (r === 'pastor' ? sectionHtml(pastor) : '') + sectionHtml(common) + '<div id="summaryBox"></div>';
+      (r === 'pastor' ? sectionHtml(pastor) : '') + (r === 'pastor' && CFG.CARD_VERIFY ? '<div id="cardAdmin"></div>' : '') + sectionHtml(common) + '<div id="summaryBox"></div>';
+    if (r === 'pastor' && CFG.CARD_VERIFY) loadCardAdmin();
   }
   async function showSummary() {
     const box = $('summaryBox');
@@ -244,8 +245,90 @@
   function openCard() {
     renderCard(); tickCard(); clearInterval(cardTimer); cardTimer = setInterval(tickCard, 1000);
     $('cardModal').hidden = false;
+    refreshCardStatus();
   }
   function closeCard() { clearInterval(cardTimer); $('cardModal').hidden = true; }
+
+  /* ---------- 교인 카드 "교회 확인" (CARD_VERIFY가 켜졌을 때만) ---------- */
+  const NOTE_DEFAULT = '장유중앙교회 안에서 쓰는 교인 카드입니다.<br>공식 신분증이 아니며, 교회의 확인을 받은 카드가 아닙니다.';
+  async function cardHash() { return (await sha('card:' + getPhoto())).slice(0, 24); }
+  function fmtDate(d) { return String(d || '').replace(/-/g, '.'); }
+  function setCardUi(badge, tone, action, note) {
+    const b = $('idcBadge'), a = $('cardAction');
+    b.hidden = !badge; b.className = 'idc-badge ' + (tone || ''); b.textContent = badge || '';
+    a.hidden = !action; a.innerHTML = action || '';
+    $('cardNote').innerHTML = note || NOTE_DEFAULT;
+  }
+  async function cardCall(method, payload) {
+    if (method === 'GET') {
+      const r = await fetch(CFG.GAS_URL + '?' + new URLSearchParams(payload).toString());
+      return r.json();
+    }
+    const r = await fetch(CFG.GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+    return r.json();
+  }
+  function applyCardStatus(st, date) {
+    if (st === '확인됨') setCardUi('✔ 교회 확인 완료 · ' + fmtDate(date), 'ok', '', '교회(목회자)가 직접 만나 확인한 카드입니다.<br>확인 후 1년 동안 유효하며, 사진을 바꾸면 다시 확인받아야 합니다.');
+    else if (st === '대기') setCardUi('확인 대기 중', 'wait', '', '확인 요청을 보냈어요. 교역자를 만나 이 카드의 사진과 얼굴을 확인받으면 완료됩니다.');
+    else setCardUi('', '', '<button id="btnCardReq" class="btn primary big" type="button">교회 확인 요청' + (st === '만료' ? ' (기간이 지났어요)' : '') + '</button>',
+      '교역자가 직접 만나 사진과 얼굴을 확인하면 "교회 확인 완료"가 붙습니다. 사진은 서버로 보내지 않습니다.');
+  }
+  async function refreshCardStatus() {
+    if (!CFG.CARD_VERIFY) { setCardUi('', '', '', ''); return; }
+    if (!CFG.GAS_URL) { setCardUi('', '', '', '구글 시트가 연결되면 사용할 수 있어요.'); return; }
+    if (!getPhoto()) { setCardUi('', '', '', '먼저 내 정보에서 사진을 등록해 주세요.'); return; }
+    const hash = await cardHash();
+    setCardUi('확인 중…', 'wait', '', '');
+    try {
+      const d = await cardCall('GET', { action: 'card_status', name: profile.name, phone4: profile.phone4, hash });
+      if (!d.ok) throw new Error(d.error);
+      if (d.status === '확인됨') store.set('jjc_card_ok', { hash, date: d.date }); else store.del('jjc_card_ok');
+      applyCardStatus(d.status, d.date);
+    } catch (e) {
+      const c = store.get('jjc_card_ok', null);
+      if (c && c.hash === hash) setCardUi('✔ 교회 확인 완료 · ' + fmtDate(c.date) + ' (오프라인)', 'ok', '', '인터넷이 연결되면 다시 확인합니다.');
+      else setCardUi('', '', '', '확인 상태를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.');
+    }
+  }
+  async function requestCardCheck() {
+    const hash = await cardHash();
+    try {
+      const d = await cardCall('POST', { action: 'card_request', name: profile.name, mokjang: profile.mokjang, phone4: profile.phone4, hash });
+      if (!d.ok) throw new Error(d.error);
+      applyCardStatus(d.status, d.date); toast('확인 요청을 보냈어요');
+    } catch (e) { toast('요청하지 못했어요. 인터넷을 확인해 주세요'); }
+  }
+
+  /* 목회자 PIN: 확인 대기 · 확인된 목록 */
+  async function loadCardAdmin() {
+    const box = $('cardAdmin'); if (!box) return;
+    box.innerHTML = '<div class="card"><h2>교인 카드 확인</h2><p class="muted small">불러오는 중…</p></div>';
+    if (!CFG.GAS_URL) { box.innerHTML = '<div class="card"><h2>교인 카드 확인</h2><p class="muted small">구글 시트 연결 후 사용할 수 있어요.</p></div>'; return; }
+    try {
+      const d = await cardCall('GET', { action: 'card_list', pin: sessionStorage.getItem('jjc_pin') || '' });
+      if (!d.ok) throw new Error(d.error);
+      const row = (x, op, label) => '<li><div><b>' + esc(x.name) + '</b> <span class="muted small">' + esc(x.mokjang) + ' · ' + esc(x.phone4) + '</span><div class="muted small">' +
+        (op === 'approve' ? '요청 ' + fmtDate(x.requested) : (x.status === '만료' ? '만료 · 확인 ' : '확인 ') + fmtDate(x.approved)) + '</div></div>' +
+        '<button type="button" class="btn ' + (op === 'approve' ? 'primary' : 'danger-soft') + '" data-card-op="' + op + '" data-n="' + esc(x.name) + '" data-p="' + esc(x.phone4) + '" data-h="' + esc(x.hash) + '" data-m="' + esc(x.mokjang) + '">' + label + '</button></li>';
+      box.innerHTML = '<div class="card"><h2>교인 카드 확인</h2>' +
+        '<p class="muted small" style="margin:-4px 0 10px">성도님을 직접 만나, 폰 카드의 사진과 얼굴이 같은지 보고 승인해 주세요.</p>' +
+        '<div class="sub-h">확인 대기 ' + d.pending.length + '명</div><ul class="card-list">' + (d.pending.map(x => row(x, 'approve', '승인')).join('') || '<li class="muted small">대기 중인 요청이 없어요</li>') + '</ul>' +
+        '<div class="sub-h">확인된 분 ' + d.confirmed.length + '명 <span class="muted small">(유효 ' + d.validDays + '일)</span></div><ul class="card-list">' + (d.confirmed.map(x => row(x, 'revoke', '해제')).join('') || '<li class="muted small">아직 없어요</li>') + '</ul>' +
+        '<button type="button" class="btn" id="btnCardAdminRefresh">새로고침</button></div>';
+    } catch (e) { box.innerHTML = '<div class="card"><h2>교인 카드 확인</h2><p class="err">불러오지 못했어요. (' + esc(e.message) + ')</p></div>'; }
+  }
+  async function cardAdminOp(btn) {
+    const op = btn.dataset.cardOp;
+    if (op === 'revoke' && !confirm(btn.dataset.n + ' 님의 교회 확인을 해제할까요?')) return;
+    if (op === 'approve' && !confirm(btn.dataset.n + ' 님을 직접 만나 사진과 얼굴을 확인하셨나요?')) return;
+    btn.disabled = true;
+    try {
+      const d = await cardCall('POST', { action: 'card_approve', pin: sessionStorage.getItem('jjc_pin') || '', op, name: btn.dataset.n, mokjang: btn.dataset.m, phone4: btn.dataset.p, hash: btn.dataset.h });
+      if (!d.ok) throw new Error(d.error);
+      toast(op === 'approve' ? '승인했어요' : '해제했어요');
+    } catch (e) { toast('처리하지 못했어요: ' + e.message); }
+    loadCardAdmin();
+  }
 
   /* ---------- 내 정보 ---------- */
   function renderMe() {
@@ -465,6 +548,7 @@
     $('btnCard').addEventListener('click', openCard);
     $('btnCardOpen').addEventListener('click', openCard);
     $('cardClose').addEventListener('click', closeCard);
+    $('cardAction').addEventListener('click', e => { if (e.target.closest('#btnCardReq')) requestCardCheck(); });
     $('btnPhotoPick').addEventListener('click', () => $('photoInput').click());
     $('photoInput').addEventListener('change', async e => {
       const f = e.target.files && e.target.files[0]; e.target.value = '';
@@ -507,6 +591,8 @@
     });
     $('staffBody').addEventListener('click', e => {
       if (e.target.closest('#sumRefresh') || e.target.closest('[data-special="summary"]')) showSummary();
+      const cop = e.target.closest('[data-card-op]'); if (cop) { cardAdminOp(cop); return; }
+      if (e.target.closest('#btnCardAdminRefresh')) { loadCardAdmin(); return; }
       if (e.target.closest('#btnLock')) { try { sessionStorage.removeItem('jjc_staff'); sessionStorage.removeItem('jjc_pin'); } catch (x) {} renderStaff(); return; }
       const mk = e.target.closest('[data-mokja]');
       if (mk) { if (mk.dataset.mokja === 'set') mokjaRegister(); else mokjaOpen(); }

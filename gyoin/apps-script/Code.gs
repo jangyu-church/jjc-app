@@ -33,15 +33,19 @@ function setup() {
   }
   sh.getRange('B:B').setNumberFormat('@');   // 날짜 글자로
   sh.getRange('E:E').setNumberFormat('@');   // 0123 같은 앞자리 0 보존
+  cardSheet_();
   Logger.log('준비 완료. 이제 배포 → 새 배포 → 웹 앱 으로 주소를 만들어 주세요.');
 }
 
-function pinOk_(pin) {
-  if (!/^\d{4}$/.test(String(pin || ''))) return false;
+// PIN의 권한: 'staff'(사역자) / 'pastor'(목회자) / ''(틀림)   (PIN_HASHES 순서: 사역자, 목회자)
+function pinRole_(pin) {
+  if (!/^\d{4}$/.test(String(pin || ''))) return '';
   var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'jjc:' + pin, Utilities.Charset.UTF_8);
   var hex = bytes.map(function (b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join('');
-  return PIN_HASHES.indexOf(hex) > -1;
+  var i = PIN_HASHES.indexOf(hex);
+  return i === 0 ? 'staff' : i === 1 ? 'pastor' : '';
 }
+function pinOk_(pin) { return !!pinRole_(pin); }
 
 function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
@@ -71,6 +75,8 @@ function doPost(e) {
   try {
     lock.waitLock(20000);
     var body = JSON.parse(e.postData.contents);
+    if (body.action === 'card_request') return cardRequest_(body);
+    if (body.action === 'card_approve') return cardApprove_(body);
     if (body.action !== 'checkin') return json_({ ok: false, error: '알 수 없는 요청' });
 
     var loc = String(body.loc || '');
@@ -130,6 +136,8 @@ function doPost(e) {
 // 확인용(주소만 열었을 때) + 사역자용 오늘 목장별 현황(PIN 필요)
 function doGet(e) {
   var p = (e && e.parameter) || {};
+  if (p.action === 'card_status') return cardStatus_(p);
+  if (p.action === 'card_list') return cardList_(p);
   if (p.action !== 'summary') return json_({ ok: true, app: '장유중앙교회 교인앱 출석', time: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm') });
 
   if (!pinOk_(p.pin)) return json_({ ok: false, error: 'PIN이 맞지 않습니다' });
@@ -149,4 +157,112 @@ function doGet(e) {
   }
   var list = Object.keys(groups).sort().map(function (m) { return { mokjang: m, count: groups[m].length, names: groups[m] }; });
   return json_({ ok: true, date: date, total: Object.keys(seen).length, services: Object.keys(services), groups: list });
+}
+
+// ===== 교인 카드 확인 (사진은 보내지 않고 '사진 지문'만 기록) =====
+var CARD_SHEET = '교인카드';
+var CARD_HEADERS = ['이름', '소속', '연락처 뒷자리', '사진 지문', '요청일', '상태', '승인일', '승인 권한'];
+var CARD_VALID_DAYS = 365;   // 승인 후 이 기간(일)이 지나면 '만료'. 다시 확인을 받아야 합니다.
+
+function today_() { return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'); }
+
+function cardSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(CARD_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(CARD_SHEET);
+    sh.getRange(1, 1, 1, CARD_HEADERS.length).setValues([CARD_HEADERS]).setFontWeight('bold').setBackground('#E6DDF8');
+    sh.setFrozenRows(1);
+    sh.getRange('A:H').setNumberFormat('@');
+  }
+  return sh;
+}
+
+function cardValues_(sh) {
+  var n = sh.getLastRow() - 1;
+  return n > 0 ? sh.getRange(2, 1, n, CARD_HEADERS.length).getValues() : [];
+}
+
+function plain_(v) { return String(v == null ? '' : v).replace(/^'/, ''); }
+
+function cardFind_(vals, name, phone4, hash) {
+  for (var i = 0; i < vals.length; i++) {
+    if (plain_(vals[i][0]) === plain_(name) && String(vals[i][2]) === phone4 && String(vals[i][3]) === hash) return i;
+  }
+  return -1;
+}
+
+function cardStatusOf_(row) {
+  var st = String(row[5]);
+  if (st === '확인됨') {
+    var days = (new Date(today_()).getTime() - new Date(String(row[6])).getTime()) / 86400000;
+    if (!(days <= CARD_VALID_DAYS)) return '만료';
+  }
+  return st;
+}
+
+function cardIdentity_(b) {
+  var name = clean_(b.name, 20), phone4 = phone_(b.phone4), hash = String(b.hash || '');
+  if (!name || phone4.length !== 4 || !/^[0-9a-f]{24}$/.test(hash)) return null;
+  return { name: name, phone4: phone4, hash: hash, mokjang: clean_(b.mokjang, 20) };
+}
+
+// 성도 폰 → "확인해 주세요" 요청 (사진은 오지 않음)
+function cardRequest_(b) {
+  var id = cardIdentity_(b);
+  if (!id) return json_({ ok: false, error: '정보가 올바르지 않습니다' });
+  var sh = cardSheet_(), vals = cardValues_(sh), i = cardFind_(vals, id.name, id.phone4, id.hash), t = today_();
+  if (i > -1) {
+    var st = cardStatusOf_(vals[i]);
+    if (st === '확인됨' || st === '대기') return json_({ ok: true, status: st, date: String(vals[i][6]) });
+    sh.getRange(i + 2, 2).setValue(id.mokjang);
+    sh.getRange(i + 2, 5, 1, 3).setValues([[t, '대기', '']]);       // 해제·만료 → 다시 대기
+    return json_({ ok: true, status: '대기', date: '' });
+  }
+  for (var k = vals.length - 1; k >= 0; k--) {                         // 같은 사람의 예전 '대기'는 정리
+    if (plain_(vals[k][0]) === plain_(id.name) && String(vals[k][2]) === id.phone4 && String(vals[k][5]) === '대기') sh.deleteRow(k + 2);
+  }
+  var r0 = sh.getLastRow() + 1;
+  sh.getRange(r0, 1, 1, CARD_HEADERS.length).setNumberFormat('@').setValues([[id.name, id.mokjang, id.phone4, id.hash, t, '대기', '', '']]);
+  return json_({ ok: true, status: '대기', date: '' });
+}
+
+// 성도 폰 → 내 카드 상태 조회 (이름+뒷자리+사진 지문이 모두 맞아야 결과가 나옴)
+function cardStatus_(p) {
+  var id = cardIdentity_(p);
+  if (!id) return json_({ ok: false, error: '정보가 올바르지 않습니다' });
+  var vals = cardValues_(cardSheet_()), i = cardFind_(vals, id.name, id.phone4, id.hash);
+  if (i < 0) return json_({ ok: true, status: '없음', date: '' });
+  return json_({ ok: true, status: cardStatusOf_(vals[i]), date: String(vals[i][6]) });
+}
+
+// 목회자 PIN: 확인 대기 / 확인된 목록 (사진 없이 이름·소속·날짜만)
+function cardList_(p) {
+  if (pinRole_(p.pin) !== 'pastor') return json_({ ok: false, error: '목회자 PIN이 필요합니다' });
+  var vals = cardValues_(cardSheet_()), pending = [], confirmed = [];
+  vals.forEach(function (v) {
+    var st = cardStatusOf_(v);
+    var item = { name: plain_(v[0]), mokjang: String(v[1]), phone4: String(v[2]), hash: String(v[3]), requested: String(v[4]), approved: String(v[6]), status: st };
+    if (st === '대기') pending.push(item);
+    else if (st === '확인됨' || st === '만료') confirmed.push(item);
+  });
+  return json_({ ok: true, pending: pending, confirmed: confirmed, validDays: CARD_VALID_DAYS });
+}
+
+// 목회자 PIN: 승인(approve) / 해제(revoke)
+function cardApprove_(b) {
+  if (pinRole_(b.pin) !== 'pastor') return json_({ ok: false, error: '목회자 PIN이 필요합니다' });
+  var id = cardIdentity_(b), op = String(b.op || '');
+  if (!id || (op !== 'approve' && op !== 'revoke')) return json_({ ok: false, error: '요청이 올바르지 않습니다' });
+  var sh = cardSheet_(), vals = cardValues_(sh), i = cardFind_(vals, id.name, id.phone4, id.hash);
+  if (i < 0) return json_({ ok: false, error: '대상을 찾지 못했습니다' });
+  if (op === 'revoke') {
+    sh.getRange(i + 2, 6).setValue('해제');
+    return json_({ ok: true, status: '해제' });
+  }
+  for (var k = 0; k < vals.length; k++) {                              // 같은 사람의 예전 확인은 새 사진으로 교체
+    if (k !== i && plain_(vals[k][0]) === plain_(id.name) && String(vals[k][2]) === id.phone4 && String(vals[k][5]) === '확인됨') sh.getRange(k + 2, 6).setValue('해제');
+  }
+  sh.getRange(i + 2, 6, 1, 3).setValues([['확인됨', today_(), '목회자']]);
+  return json_({ ok: true, status: '확인됨', date: today_() });
 }
