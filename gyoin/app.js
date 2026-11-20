@@ -116,9 +116,15 @@
     const out = JSON.parse(JSON.stringify(base || { sections: [], staff: { items: [] } }));
     out.sections = out.sections || []; out.staff = out.staff || { items: [] }; out.staff.items = out.staff.items || [];
     const locate = id => {
-      for (const sec of out.sections) { const i = sec.items.findIndex(a => a.id === id); if (i > -1) return { list: sec.items, i }; }
+      for (const sec of out.sections) { const i = sec.items.findIndex(a => a.id === id); if (i > -1) return { list: sec.items, i, sec }; }
       const j = out.staff.items.findIndex(a => a.id === id);
       return j > -1 ? { list: out.staff.items, i: j } : null;
+    };
+    const curPlace = at => at.sec ? at.sec.id : (at.list[at.i].role === 'pastor' ? 'pastor' : 'staff');
+    const placeItem = (item, r) => {
+      if (r.target === 'all') { const sec = out.sections.find(x => x.id === r.section); if (sec) { delete item.role; sec.items.push(item); } return; }
+      if (r.target === 'pastor') item.role = 'pastor'; else delete item.role;
+      out.staff.items.push(item);
     };
     (rows || []).forEach(r => {
       if (!r || !r.id) return;
@@ -132,10 +138,12 @@
       if (at) {
         const m = Object.assign({}, at.list[at.i], f);
         if (!dated) { delete m.open; delete m.close; }
-        at.list[at.i] = m; return;
+        const want = r.target === 'all' ? r.section : r.target;
+        if (want && want !== curPlace(at)) { at.list.splice(at.i, 1); placeItem(m, r); }   // 다른 곳으로 옮김
+        else at.list[at.i] = m;
+        return;
       }
-      if (r.target === 'all') { const sec = out.sections.find(x => x.id === r.section); if (sec) sec.items.push(f); }
-      else { if (r.target === 'pastor') f.role = 'pastor'; out.staff.items.push(f); }
+      placeItem(f, r);
     });
     return out;
   }
@@ -450,7 +458,7 @@
     $('afHead').textContent = item ? '앱 고치기' : '새 앱 추가';
     $('afTitle').value = item ? item.title : ''; $('afDesc').value = item ? (item.desc || '') : '';
     $('afUrl').value = item ? (item.url || '') : ''; $('afIcon').value = item ? (item.icon || '') : '';
-    $('afSection').value = appForm.place; $('afSection').disabled = appForm.builtin;
+    $('afSection').value = appForm.place; $('afSection').disabled = false;
     const op = item && item.open && item.open !== '2000-01-01' ? item.open : '', cl = item && item.close ? item.close : '';
     $('afPeriod').checked = !!(op || cl); $('afDates').hidden = !$('afPeriod').checked;
     $('afOpen').value = op; $('afCloseDate').value = cl;
@@ -469,6 +477,7 @@
       icon: $('afIcon').value.trim() || '📱', title, desc: $('afDesc').value.trim(), url, open: op, close: cl,
       status: prev && prev.a._hidden ? '숨김' : '공개'
     };
+    if (prev && (prev.place === 'staff' || prev.place === 'pastor') && row.target === 'all' && !confirm('"' + title + '" 앱이 성도님 모두에게 보이게 돼요. 계속할까요?')) return;
     afErr(''); $('afSave').disabled = true;
     try {
       await appPost({ action: 'app_save', app: row });

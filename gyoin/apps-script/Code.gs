@@ -321,15 +321,15 @@ function appsValues_(sh) {
   return n > 0 ? sh.getRange(2, 1, n, APPS_HEADERS.length).getValues() : [];
 }
 
-// 누구나(role '') / 사역자 / 목회자가 볼 수 있는 줄만. 숨김 줄은 내용 없이 id만 보냅니다.
+// 누구나(role '') / 사역자 / 목회자에게 보낼 줄. 볼 수 없거나 숨긴 줄은 내용 없이 id만 보냅니다(내용·주소는 안 나감).
 function appsList_(role) {
   var out = [];
   appsValues_(appsSheet_()).forEach(function (v) {
     var a = appRow_(v);
     if (!a.id) return;
     var ok = a.target === 'all' || (a.target === 'staff' && (role === 'staff' || role === 'pastor')) || (a.target === 'pastor' && role === 'pastor');
-    if (!ok) return;
-    out.push(a.status === '숨김' ? { id: a.id, status: '숨김' } : a);
+    if (!ok || a.status === '숨김') { out.push({ id: a.id, status: '숨김' }); return; }   // 볼 수 없는 줄도 id만 보내 같은 id의 기본 앱을 그 사람에게선 감춤
+    out.push(a);
   });
   return out;
 }
