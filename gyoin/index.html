@@ -16,7 +16,7 @@
 /* 화면 모드(자동/라이트/나이트)를 화면이 그려지기 전에 적용 */
 try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}
 </script>
-<link rel="stylesheet" href="app.css?v=9">
+<link rel="stylesheet" href="app.css?v=10">
 </head>
 <body>
 
@@ -212,10 +212,40 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
   </div>
 </div>
 
+<!-- 앱 추가·고치기 (목회자 전용) -->
+<div id="appModal" class="modal" hidden>
+  <div class="sheet">
+    <div class="sheet-head"><strong id="afHead">새 앱 추가</strong><button id="afClose" class="x" type="button" aria-label="닫기">✕</button></div>
+    <form id="appForm" autocomplete="off">
+      <label>앱 이름<input id="afTitle" required maxlength="40" placeholder="예: 3D로 보는 성경"></label>
+      <label>짧은 설명<input id="afDesc" maxlength="60" placeholder="예: 솔로몬 성전을 돌려 보며 만나요"></label>
+      <label>앱 주소 (https:// 로 시작)<input id="afUrl" type="url" inputmode="url" autocapitalize="off" spellcheck="false" maxlength="490" placeholder="https://"></label>
+      <div class="af-row">
+        <label>아이콘 (이모지 하나)<input id="afIcon" maxlength="8" placeholder="📱"></label>
+        <label>들어갈 곳<select id="afSection">
+          <option value="worship">예배 · 말씀</option>
+          <option value="grow">양육 · 동아리</option>
+          <option value="season">절기 · 전도</option>
+          <option value="staff">사역자 전용</option>
+          <option value="pastor">목회자 전용</option>
+        </select></label>
+      </div>
+      <label class="ck"><input id="afPeriod" type="checkbox"> 보이는 기간을 정할래요 (절기 앱)</label>
+      <div id="afDates" class="af-row" hidden>
+        <label>여는 날<input id="afOpen" type="date"></label>
+        <label>닫는 날 (비우면 계속)<input id="afCloseDate" type="date"></label>
+      </div>
+      <p id="afErr" class="err" hidden></p>
+      <button id="afSave" class="btn primary big" type="submit">저장</button>
+      <button id="afTest" class="btn link" type="button">주소가 열리는지 확인해 보기</button>
+    </form>
+  </div>
+</div>
+
 <div id="toast" class="toast" hidden></div>
 
-<script src="config.js?v=9"></script>
+<script src="config.js?v=10"></script>
 <script src="vendor/html5-qrcode.min.js"></script>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

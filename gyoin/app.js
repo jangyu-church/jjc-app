@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const CFG = window.JJC_CONFIG;
-  const VERSION = 'v1';
+  const VERSION = 'v2';
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -17,6 +17,9 @@
   let last = store.get('jjc_last', null);      // {date, service}
   let queue = store.get('jjc_queue', []);      // 인터넷 안 될 때 쌓아 두는 출석
   let APPS = null;
+  let BASE = null;                                    // apps.json 원본
+  let SHEET_ROWS = store.get('jjc_apps_cache', []);   // 시트에서 받은 앱 줄(공개분은 이 폰에 저장해 두었다가 인터넷이 안 될 때 씀)
+  let ADMIN_ROWS = [];                                // 목회자 '앱 관리' 화면용 전체 줄
   let pendingCheckin = null;                   // QR 주소로 들어왔을 때 {loc}
 
   /* ---------- 시간·예배 구분 (한국 시간 기준) ---------- */
@@ -75,8 +78,9 @@
 
   /* ---------- 화면 시작 ---------- */
   async function init() {
-    try { APPS = await (await fetch('apps.json', { cache: 'no-cache' })).json(); }
-    catch (e) { APPS = { sections: [], staff: { items: [] } }; toast('앱 목록을 불러오지 못했어요'); }
+    try { BASE = await (await fetch('apps.json', { cache: 'no-cache' })).json(); }
+    catch (e) { BASE = { sections: [], staff: { items: [] } }; toast('앱 목록을 불러오지 못했어요'); }
+    APPS = mergeApps(BASE, SHEET_ROWS);
     fillMokjang($('obMokjang')); fillMokjang($('meMokjang'));
     applyTheme(getTheme());
 
@@ -95,6 +99,7 @@
     bindEvents();
     showInstallBar();
     flushQueue();
+    refreshSheetApps();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
@@ -102,6 +107,55 @@
     $('onboard').hidden = true; $('main').hidden = false;
     renderHome(); renderMe(); renderStaff();
     if (pendingCheckin) { const p = pendingCheckin; pendingCheckin = null; startUrlCheckin(p.loc); }
+  }
+
+  /* ---------- 앱 목록: apps.json + 시트 「앱목록」 ---------- */
+  // 시트 줄이 apps.json과 같은 id면 그 항목을 덮어쓰고(숨김이면 감춤), 새 id면 해당 묶음 맨 끝에 붙입니다.
+  // admin=true 이면 숨긴 줄도 남기고 표시(_hidden/_src/_new)를 붙여 '앱 관리' 화면에서 씁니다.
+  function mergeApps(base, rows, admin) {
+    const out = JSON.parse(JSON.stringify(base || { sections: [], staff: { items: [] } }));
+    out.sections = out.sections || []; out.staff = out.staff || { items: [] }; out.staff.items = out.staff.items || [];
+    const locate = id => {
+      for (const sec of out.sections) { const i = sec.items.findIndex(a => a.id === id); if (i > -1) return { list: sec.items, i }; }
+      const j = out.staff.items.findIndex(a => a.id === id);
+      return j > -1 ? { list: out.staff.items, i: j } : null;
+    };
+    (rows || []).forEach(r => {
+      if (!r || !r.id) return;
+      const at = locate(r.id), hidden = r.status === '숨김';
+      if (hidden && !admin) { if (at) at.list.splice(at.i, 1); return; }
+      if (!r.title) return;                                   // 내용 없는 줄은 무시
+      const f = { id: r.id, icon: r.icon || '📱', title: r.title, desc: r.desc || '', url: r.url || '' };
+      const dated = !!(r.open || r.close);
+      if (dated) { f.open = r.open || '2000-01-01'; f.close = r.close || ''; }
+      if (admin) { f._src = 'sheet'; f._new = !at; f._hidden = hidden; }
+      if (at) {
+        const m = Object.assign({}, at.list[at.i], f);
+        if (!dated) { delete m.open; delete m.close; }
+        at.list[at.i] = m; return;
+      }
+      if (r.target === 'all') { const sec = out.sections.find(x => x.id === r.section); if (sec) sec.items.push(f); }
+      else { if (r.target === 'pastor') f.role = 'pastor'; out.staff.items.push(f); }
+    });
+    return out;
+  }
+  function pinNow() { try { return sessionStorage.getItem('jjc_pin') || ''; } catch (e) { return ''; } }
+  async function sheetGet(payload) {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 12000);
+    try { return await (await fetch(CFG.GAS_URL + '?' + new URLSearchParams(payload).toString(), { signal: ctl.signal })).json(); }
+    finally { clearTimeout(t); }
+  }
+  // 시트에 올라온 앱 줄을 받아 홈에 반영. 실패하거나 예전 Code.gs면 조용히 넘어가고 apps.json(+저장해 둔 목록)만 보여 줍니다.
+  async function refreshSheetApps(force) {
+    if (!CFG.GAS_URL) return;
+    try {
+      const d = await sheetGet({ action: 'apps', pin: pinNow() });
+      if (!d || !d.ok || !Array.isArray(d.items)) return;
+      const same = JSON.stringify(d.items) === JSON.stringify(SHEET_ROWS);
+      SHEET_ROWS = d.items;
+      store.set('jjc_apps_cache', d.items.filter(x => !x.target || x.target === 'all'));
+      if (force || !same) { APPS = mergeApps(BASE, SHEET_ROWS); if (profile && !$('main').hidden) { renderHome(); renderStaff(); } }
+    } catch (e) { /* 인터넷이 없으면 저장해 둔 목록 그대로 */ }
   }
 
   /* ---------- 홈 ---------- */
@@ -166,7 +220,8 @@
     const common = Object.assign({}, st, { items: st.items.filter(a => a.role !== 'pastor') });
     const pastor = Object.assign({}, st, { title: st.pastorTitle || '목회자 전용', fg: '#7C5CE0', bg: '#EFE9FF', items: st.items.filter(a => a.role === 'pastor') });
     $('staffBody').innerHTML = '<div class="role-bar"><span>' + (r === 'pastor' ? '목회자로 열림' : '사역자로 열림') + '</span><button type="button" id="btnLock">🔒 잠그기</button></div>' +
-      (r === 'pastor' ? sectionHtml(pastor) : '') + (r === 'pastor' && CFG.CARD_VERIFY ? '<div id="cardAdmin"></div>' : '') + sectionHtml(common) + '<div id="summaryBox"></div>';
+      (r === 'pastor' ? sectionHtml(pastor) : '') + (r === 'pastor' ? '<div id="appAdmin"></div>' : '') + (r === 'pastor' && CFG.CARD_VERIFY ? '<div id="cardAdmin"></div>' : '') + sectionHtml(common) + '<div id="summaryBox"></div>';
+    if (r === 'pastor') loadAppAdmin();
     if (r === 'pastor' && CFG.CARD_VERIFY) loadCardAdmin();
   }
   async function showSummary() {
@@ -328,6 +383,118 @@
       toast(op === 'approve' ? '승인했어요' : '해제했어요');
     } catch (e) { toast('처리하지 못했어요: ' + e.message); }
     loadCardAdmin();
+  }
+
+  /* ---------- 목회자 전용: 앱 관리 (추가 · 고치기 · 숨기기 · 삭제) ---------- */
+  const SEC_NAME = { worship: '예배 · 말씀', grow: '양육 · 동아리', season: '절기 · 전도', staff: '사역자 전용', pastor: '목회자 전용' };
+  let appForm = null;   // {id, builtin, place}
+  const inBase = id => !!(BASE && (BASE.sections.some(s => s.items.some(a => a.id === id)) || BASE.staff.items.some(a => a.id === id)));
+  function adminView() {
+    const out = mergeApps(BASE, ADMIN_ROWS, true);
+    const groups = out.sections.map(s => ({ key: s.id, items: s.items }))
+      .concat([{ key: 'staff', items: out.staff.items.filter(a => a.role !== 'pastor') }, { key: 'pastor', items: out.staff.items.filter(a => a.role === 'pastor') }]);
+    return groups;
+  }
+  function findAdminItem(id) {
+    for (const g of adminView()) { const a = g.items.find(x => x.id === id); if (a) return { a, place: g.key }; }
+    return null;
+  }
+  function rowOf(a, place, status) {
+    return {
+      id: a.id, section: SEC_NAME[place] && place !== 'staff' && place !== 'pastor' ? place : '',
+      target: place === 'staff' || place === 'pastor' ? place : 'all',
+      icon: a.icon || '📱', title: a.title, desc: a.desc || '', url: a.url || '',
+      open: a.open && a.open !== '2000-01-01' ? a.open : '', close: a.close || '', status
+    };
+  }
+  async function appPost(payload) {
+    const r = await fetch(CFG.GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ pin: pinNow() }, payload)) });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || '실패');
+    return d;
+  }
+  async function loadAppAdmin() {
+    const box = $('appAdmin'); if (!box) return;
+    if (!CFG.GAS_URL) { box.innerHTML = '<div class="card"><h2>앱 관리</h2><p class="muted small">구글 시트(GAS_URL)가 연결되면 쓸 수 있어요.</p></div>'; return; }
+    box.innerHTML = '<div class="card"><h2>앱 관리</h2><p class="muted small">불러오는 중…</p></div>';
+    try {
+      const d = await sheetGet({ action: 'apps_all', pin: pinNow() });
+      if (!d.ok) throw new Error(d.error || '실패');
+      if (!Array.isArray(d.items)) throw new Error('구글 시트 코드(Code.gs)를 새 버전으로 배포해 주세요');
+      ADMIN_ROWS = d.items;
+      renderAppAdmin();
+    } catch (e) { box.innerHTML = '<div class="card"><h2>앱 관리</h2><p class="err">불러오지 못했어요. (' + esc(e.message) + ')</p><button type="button" class="btn" data-app-op="reload">다시 불러오기</button></div>'; }
+  }
+  function renderAppAdmin() {
+    const box = $('appAdmin'); if (!box) return;
+    const li = a => {
+      const plain = !!(a.special || a.options);
+      const showNow = a._hidden || ('open' in a && !a.open);
+      const tags = (a._hidden ? '<span class="tag off">숨김</span>' : (!isOpen(a) ? '<span class="tag wait">기간 아님</span>' : '')) +
+        (a._src === 'sheet' ? '<span class="tag">' + (a._new ? '내가 추가' : '고침') + '</span>' : '');
+      const ic = a.img ? '<span class="ico"><img src="' + esc(a.img) + '" alt=""></span>' : '<span class="ico">' + esc(a.icon || '•') + '</span>';
+      const ops = plain ? '<div class="muted small" style="margin-top:6px">기본 기능이 들어 있는 앱이라 코드로 관리해요</div>' :
+        '<div class="app-ops"><button type="button" class="btn" data-app-op="edit" data-id="' + esc(a.id) + '">고치기</button>' +
+        '<button type="button" class="btn" data-app-op="toggle" data-id="' + esc(a.id) + '">' + (showNow ? '보이기' : '숨기기') + '</button>' +
+        (a._src === 'sheet' ? '<button type="button" class="btn danger-soft" data-app-op="del" data-id="' + esc(a.id) + '">' + (a._new ? '삭제' : '원래대로') + '</button>' : '') + '</div>';
+      return '<div class="app-li"><div class="t">' + ic + '<div><div class="nm">' + esc(a.title) + tags + '</div><div class="muted small">' + esc(a.url ? a.url.replace(/^https:\/\//, '').slice(0, 44) : '주소 없음 (준비 중으로 보임)') + '</div></div></div>' + ops + '</div>';
+    };
+    box.innerHTML = '<div class="card"><h2>앱 관리</h2>' +
+      '<p class="muted small" style="margin:-4px 0 10px">교인 홈에 보이는 앱을 여기서 바로 추가하고 고칠 수 있어요. 저장하면 성도님들 폰에도 곧 나타납니다.</p>' +
+      '<button type="button" class="btn primary big" data-app-op="new" style="margin-top:0">＋ 새 앱 추가</button>' +
+      adminView().filter(g => g.items.length).map(g => '<div class="sub-h">' + esc(SEC_NAME[g.key] || g.key) + '</div>' + g.items.map(li).join('')).join('') + '</div>';
+  }
+  function afErr(msg) { const e = $('afErr'); e.hidden = !msg; e.textContent = msg || ''; }
+  function openAppForm(item, place) {
+    appForm = item ? { id: item.id, builtin: inBase(item.id), place } : { id: '', builtin: false, place: 'grow' };
+    $('afHead').textContent = item ? '앱 고치기' : '새 앱 추가';
+    $('afTitle').value = item ? item.title : ''; $('afDesc').value = item ? (item.desc || '') : '';
+    $('afUrl').value = item ? (item.url || '') : ''; $('afIcon').value = item ? (item.icon || '') : '';
+    $('afSection').value = appForm.place; $('afSection').disabled = appForm.builtin;
+    const op = item && item.open && item.open !== '2000-01-01' ? item.open : '', cl = item && item.close ? item.close : '';
+    $('afPeriod').checked = !!(op || cl); $('afDates').hidden = !$('afPeriod').checked;
+    $('afOpen').value = op; $('afCloseDate').value = cl;
+    afErr(''); $('afSave').disabled = false; $('appModal').hidden = false; $('afTitle').focus();
+  }
+  async function saveAppForm() {
+    const title = $('afTitle').value.trim(), url = $('afUrl').value.trim(), period = $('afPeriod').checked;
+    const op = period ? $('afOpen').value : '', cl = period ? $('afCloseDate').value : '';
+    if (!title) return afErr('앱 이름을 적어 주세요');
+    if (url && !/^https:\/\/\S{4,}$/.test(url)) return afErr('주소는 https:// 로 시작해야 해요');
+    if (period && !op && !cl) return afErr('기간을 정하려면 여는 날이나 닫는 날을 골라 주세요');
+    if (op && cl && cl < op) return afErr('닫는 날이 여는 날보다 빨라요');
+    const place = $('afSection').value, prev = appForm.id ? findAdminItem(appForm.id) : null;
+    const row = {
+      id: appForm.id, section: place === 'staff' || place === 'pastor' ? '' : place, target: place === 'staff' || place === 'pastor' ? place : 'all',
+      icon: $('afIcon').value.trim() || '📱', title, desc: $('afDesc').value.trim(), url, open: op, close: cl,
+      status: prev && prev.a._hidden ? '숨김' : '공개'
+    };
+    afErr(''); $('afSave').disabled = true;
+    try {
+      await appPost({ action: 'app_save', app: row });
+      $('appModal').hidden = true; toast('저장했어요');
+      await refreshSheetApps(true);
+    } catch (e) { afErr('저장하지 못했어요: ' + e.message); $('afSave').disabled = false; }
+  }
+  async function appOp(btn) {
+    const op = btn.dataset.appOp, id = btn.dataset.id;
+    if (op === 'reload') { loadAppAdmin(); return; }
+    if (op === 'new') { openAppForm(null); return; }
+    const it = findAdminItem(id); if (!it) return;
+    if (op === 'edit') { openAppForm(it.a, it.place); return; }
+    btn.disabled = true;
+    try {
+      if (op === 'toggle') {
+        const showNow = it.a._hidden || ('open' in it.a && !it.a.open);
+        await appPost({ action: 'app_save', app: rowOf(it.a, it.place, showNow ? '공개' : '숨김') });
+        toast(showNow ? '홈에 보이게 했어요' : '홈에서 숨겼어요');
+      } else if (op === 'del') {
+        if (!confirm(it.a._new ? '"' + it.a.title + '" 앱을 목록에서 지울까요?' : '"' + it.a.title + '" 를 고치기 전 원래 모습으로 되돌릴까요?')) { btn.disabled = false; return; }
+        await appPost({ action: 'app_delete', id });
+        toast(it.a._new ? '지웠어요' : '원래대로 되돌렸어요');
+      }
+      await refreshSheetApps(true);
+    } catch (e) { toast('처리하지 못했어요: ' + e.message); btn.disabled = false; }
   }
 
   /* ---------- 내 정보 ---------- */
@@ -539,6 +706,13 @@
       ['jjc_profile', 'jjc_family', 'jjc_last', 'jjc_queue', 'jjc_theme', 'jjc_mokja_key', 'jjc_photo'].forEach(store.del);
       location.replace(location.pathname);
     });
+    $('appForm').addEventListener('submit', e => { e.preventDefault(); saveAppForm(); });
+    $('afClose').addEventListener('click', () => { $('appModal').hidden = true; });
+    $('afPeriod').addEventListener('change', () => { $('afDates').hidden = !$('afPeriod').checked; });
+    $('afTest').addEventListener('click', () => {
+      const u = $('afUrl').value.trim();
+      if (/^https:\/\/\S{4,}$/.test(u)) window.open(u, '_blank', 'noopener'); else afErr('먼저 https:// 로 시작하는 주소를 적어 주세요');
+    });
     $('btnInstall').addEventListener('click', doInstall);
     $('ibGo').addEventListener('click', doInstall);
     $('ibClose').addEventListener('click', () => { $('installBar').hidden = true; store.set('jjc_install_closed', Date.now()); });
@@ -586,14 +760,15 @@
       const h = /^\d{4}$/.test(pin) ? await sha('jjc:' + pin) : '';
       const r = h && h === CFG.PASTOR_PIN_SHA256 ? 'pastor' : h && h === CFG.STAFF_PIN_SHA256 ? 'staff' : '';
       $('pinErr').hidden = !!r;
-      if (r) { try { sessionStorage.setItem('jjc_staff', r); sessionStorage.setItem('jjc_pin', pin); } catch (x) {} $('pinInput').value = ''; renderStaff(); }
+      if (r) { try { sessionStorage.setItem('jjc_staff', r); sessionStorage.setItem('jjc_pin', pin); } catch (x) {} $('pinInput').value = ''; renderStaff(); refreshSheetApps(); }
       else { $('pinInput').value = ''; }
     });
     $('staffBody').addEventListener('click', e => {
       if (e.target.closest('#sumRefresh') || e.target.closest('[data-special="summary"]')) showSummary();
+      const aop = e.target.closest('[data-app-op]'); if (aop) { appOp(aop); return; }
       const cop = e.target.closest('[data-card-op]'); if (cop) { cardAdminOp(cop); return; }
       if (e.target.closest('#btnCardAdminRefresh')) { loadCardAdmin(); return; }
-      if (e.target.closest('#btnLock')) { try { sessionStorage.removeItem('jjc_staff'); sessionStorage.removeItem('jjc_pin'); } catch (x) {} renderStaff(); return; }
+      if (e.target.closest('#btnLock')) { try { sessionStorage.removeItem('jjc_staff'); sessionStorage.removeItem('jjc_pin'); } catch (x) {} renderStaff(); refreshSheetApps(true); return; }
       const mk = e.target.closest('[data-mokja]');
       if (mk) { if (mk.dataset.mokja === 'set') mokjaRegister(); else mokjaOpen(); }
     });

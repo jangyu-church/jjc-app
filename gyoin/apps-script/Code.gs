@@ -34,15 +34,27 @@ function setup() {
   sh.getRange('B:B').setNumberFormat('@');   // 날짜 글자로
   sh.getRange('E:E').setNumberFormat('@');   // 0123 같은 앞자리 0 보존
   cardSheet_();
+  appsSheet_();
   Logger.log('준비 완료. 이제 배포 → 새 배포 → 웹 앱 으로 주소를 만들어 주세요.');
+}
+
+// PIN 무작정 대입 방지: 틀린 PIN이 10분 안에 30번 쌓이면 그 동안은 맞는 PIN도 잠시 받지 않습니다.
+var PIN_FAIL_LIMIT = 30, PIN_FAIL_WINDOW = 600;
+function pinLocked_() {
+  try { return Number(CacheService.getScriptCache().get('pinfail') || 0) >= PIN_FAIL_LIMIT; } catch (e) { return false; }
+}
+function pinFailed_() {
+  try { var c = CacheService.getScriptCache(); c.put('pinfail', String(Number(c.get('pinfail') || 0) + 1), PIN_FAIL_WINDOW); } catch (e) {}
 }
 
 // PIN의 권한: 'staff'(사역자) / 'pastor'(목회자) / ''(틀림)   (PIN_HASHES 순서: 사역자, 목회자)
 function pinRole_(pin) {
   if (!/^\d{4}$/.test(String(pin || ''))) return '';
+  if (pinLocked_()) return '';
   var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'jjc:' + pin, Utilities.Charset.UTF_8);
   var hex = bytes.map(function (b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join('');
   var i = PIN_HASHES.indexOf(hex);
+  if (i < 0) pinFailed_();
   return i === 0 ? 'staff' : i === 1 ? 'pastor' : '';
 }
 function pinOk_(pin) { return !!pinRole_(pin); }
@@ -77,6 +89,8 @@ function doPost(e) {
     var body = JSON.parse(e.postData.contents);
     if (body.action === 'card_request') return cardRequest_(body);
     if (body.action === 'card_approve') return cardApprove_(body);
+    if (body.action === 'app_save') return appSave_(body);
+    if (body.action === 'app_delete') return appDelete_(body);
     if (body.action !== 'checkin') return json_({ ok: false, error: '알 수 없는 요청' });
 
     var loc = String(body.loc || '');
@@ -138,6 +152,8 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   if (p.action === 'card_status') return cardStatus_(p);
   if (p.action === 'card_list') return cardList_(p);
+  if (p.action === 'apps') return json_({ ok: true, items: appsList_(pinRole_(p.pin)) });
+  if (p.action === 'apps_all') return appsAll_(p);
   if (p.action !== 'summary') return json_({ ok: true, app: '장유중앙교회 교인앱 출석', time: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm') });
 
   if (!pinOk_(p.pin)) return json_({ ok: false, error: 'PIN이 맞지 않습니다' });
@@ -265,4 +281,100 @@ function cardApprove_(b) {
   }
   sh.getRange(i + 2, 6, 1, 3).setValues([['확인됨', today_(), '목회자']]);
   return json_({ ok: true, status: '확인됨', date: today_() });
+}
+
+
+// ===== 앱 목록 (교인 홈에 보이는 앱을 앱 안에서 추가·고침) =====
+// 시트 「앱목록」 탭에 한 줄이 앱 하나입니다. 목회자 PIN으로만 쓰고 고칠 수 있고, 목록 보기는 누구나 됩니다.
+// 같은 id가 apps.json에도 있으면 이 시트 줄이 apps.json 항목을 덮어씁니다(상태가 '숨김'이면 홈에서 감춤).
+var APPS_SHEET = '앱목록';
+var APPS_HEADERS = ['id', '묶음', '아이콘', '제목', '설명', '주소', '열림', '닫힘', '대상', '상태', '수정일'];
+var APP_SECTIONS = { worship: 1, grow: 1, season: 1 };   // 예배·말씀 / 양육·동아리 / 절기·전도 (대상이 all일 때)
+var APP_TARGETS = { all: 1, staff: 1, pastor: 1 };       // all=교인 모두, staff=사역자부터, pastor=목회자만
+
+function appsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(APPS_SHEET);
+  if (!sh) {
+    try { sh = ss.insertSheet(APPS_SHEET); } catch (e) { sh = ss.getSheetByName(APPS_SHEET); }
+    if (sh && sh.getLastRow() === 0) {
+      sh.getRange(1, 1, 1, APPS_HEADERS.length).setValues([APPS_HEADERS]).setFontWeight('bold').setBackground('#DDF3E6');
+      sh.setFrozenRows(1);
+      sh.getRange('A:K').setNumberFormat('@');
+    }
+  }
+  return sh;
+}
+
+function dateStr_(v) {
+  var s = v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : plain_(v).trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+}
+
+function appRow_(v) {
+  return { id: plain_(v[0]), section: plain_(v[1]), icon: plain_(v[2]), title: plain_(v[3]), desc: plain_(v[4]), url: plain_(v[5]),
+           open: dateStr_(v[6]), close: dateStr_(v[7]), target: plain_(v[8]) || 'all', status: plain_(v[9]) || '공개' };
+}
+
+function appsValues_(sh) {
+  var n = sh.getLastRow() - 1;
+  return n > 0 ? sh.getRange(2, 1, n, APPS_HEADERS.length).getValues() : [];
+}
+
+// 누구나(role '') / 사역자 / 목회자가 볼 수 있는 줄만. 숨김 줄은 내용 없이 id만 보냅니다.
+function appsList_(role) {
+  var out = [];
+  appsValues_(appsSheet_()).forEach(function (v) {
+    var a = appRow_(v);
+    if (!a.id) return;
+    var ok = a.target === 'all' || (a.target === 'staff' && (role === 'staff' || role === 'pastor')) || (a.target === 'pastor' && role === 'pastor');
+    if (!ok) return;
+    out.push(a.status === '숨김' ? { id: a.id, status: '숨김' } : a);
+  });
+  return out;
+}
+
+function appsAll_(p) {
+  if (pinLocked_()) return json_({ ok: false, error: '잠시 뒤 다시 시도해 주세요' });
+  if (pinRole_(p.pin) !== 'pastor') return json_({ ok: false, error: '목회자 PIN이 필요합니다' });
+  var items = appsValues_(appsSheet_()).map(appRow_).filter(function (a) { return a.id; });
+  return json_({ ok: true, items: items });
+}
+
+function appSave_(b) {
+  if (pinLocked_()) return json_({ ok: false, error: '잠시 뒤 다시 시도해 주세요' });
+  if (pinRole_(b.pin) !== 'pastor') return json_({ ok: false, error: '목회자 PIN이 필요합니다' });
+  var a = b.app || {};
+  var title = clean_(a.title, 40), desc = clean_(a.desc, 60), icon = clean_(a.icon, 8) || '📱';
+  var url = String(a.url == null ? '' : a.url).trim();
+  var target = String(a.target || 'all'), section = String(a.section || ''), status = a.status === '숨김' ? '숨김' : '공개';
+  var open = String(a.open || ''), close = String(a.close || '');
+  if (!title) return json_({ ok: false, error: '앱 이름을 적어 주세요' });
+  if (url && !/^https:\/\/[^\s"'<>]{4,490}$/.test(url)) return json_({ ok: false, error: '주소는 https:// 로 시작해야 해요' });
+  if (!APP_TARGETS[target]) return json_({ ok: false, error: '보일 대상이 올바르지 않아요' });
+  if (target === 'all' && !APP_SECTIONS[section]) return json_({ ok: false, error: '들어갈 묶음을 골라 주세요' });
+  if (target !== 'all') section = '';
+  if ((open && !/^\d{4}-\d{2}-\d{2}$/.test(open)) || (close && !/^\d{4}-\d{2}-\d{2}$/.test(close))) return json_({ ok: false, error: '날짜 형식이 올바르지 않아요' });
+  if (open && close && close < open) return json_({ ok: false, error: '닫는 날이 여는 날보다 빨라요' });
+  var id = String(a.id || '');
+  if (id && !/^[a-z0-9][a-z0-9-]{1,40}$/.test(id)) return json_({ ok: false, error: '앱 번호(id)가 올바르지 않아요' });
+
+  var sh = appsSheet_(), vals = appsValues_(sh), at = -1;
+  if (!id) {                                                           // 새 앱: 겹치지 않는 번호를 새로 만듦
+    var used = {}; vals.forEach(function (v) { used[plain_(v[0])] = 1; });
+    do { id = 'a' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); } while (used[id]);
+  }
+  for (var i = 0; i < vals.length; i++) { if (plain_(vals[i][0]) === id) { at = i; break; } }
+  var row = [id, section, icon, title, desc, url, open, close, target, status, today_()];
+  var r = at > -1 ? at + 2 : sh.getLastRow() + 1;
+  sh.getRange(r, 1, 1, APPS_HEADERS.length).setNumberFormat('@').setValues([row]);
+  return json_({ ok: true, id: id });
+}
+
+function appDelete_(b) {
+  if (pinLocked_()) return json_({ ok: false, error: '잠시 뒤 다시 시도해 주세요' });
+  if (pinRole_(b.pin) !== 'pastor') return json_({ ok: false, error: '목회자 PIN이 필요합니다' });
+  var id = String(b.id || ''), sh = appsSheet_(), vals = appsValues_(sh);
+  for (var i = vals.length - 1; i >= 0; i--) { if (plain_(vals[i][0]) === id) sh.deleteRow(i + 2); }
+  return json_({ ok: true });
 }
