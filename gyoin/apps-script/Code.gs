@@ -345,7 +345,9 @@ function appSave_(b) {
   if (pinLocked_()) return json_({ ok: false, error: '잠시 뒤 다시 시도해 주세요' });
   if (pinRole_(b.pin) !== 'pastor') return json_({ ok: false, error: '목회자 PIN이 필요합니다' });
   var a = b.app || {};
-  var title = clean_(a.title, 40), desc = clean_(a.desc, 60), icon = clean_(a.icon, 8) || '📱';
+  var title = clean_(a.title, 40), desc = clean_(a.desc, 60);
+  var picIcon = String(a.icon || '');                                   // 그림 아이콘: data:image/...;base64 (칸 하나에 4만 자까지)
+  var icon = (/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(picIcon) && picIcon.length <= 45000) ? picIcon : (clean_(a.icon, 16) || '📱');
   var url = String(a.url == null ? '' : a.url).trim();
   var target = String(a.target || 'all'), section = String(a.section || ''), status = a.status === '숨김' ? '숨김' : '공개';
   var open = String(a.open || ''), close = String(a.close || '');

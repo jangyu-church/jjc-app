@@ -132,6 +132,7 @@
       if (hidden && !admin) { if (at) at.list.splice(at.i, 1); return; }
       if (!r.title) return;                                   // 내용 없는 줄은 무시
       const f = { id: r.id, icon: r.icon || '📱', title: r.title, desc: r.desc || '', url: r.url || '' };
+      if (isPic(r.icon)) f.img = r.icon;                       // 그림 아이콘(시트에 data:image로 저장)
       const dated = !!(r.open || r.close);
       if (dated) { f.open = r.open || '2000-01-01'; f.close = r.close || ''; }
       if (admin) { f._src = 'sheet'; f._new = !at; f._hidden = hidden; }
@@ -147,6 +148,7 @@
     });
     return out;
   }
+  function isPic(v) { return typeof v === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v); }
   function pinNow() { try { return sessionStorage.getItem('jjc_pin') || ''; } catch (e) { return ''; } }
   async function sheetGet(payload) {
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 12000);
@@ -452,12 +454,41 @@
       '<button type="button" class="btn primary big" data-app-op="new" style="margin-top:0">＋ 새 앱 추가</button>' +
       adminView().filter(g => g.items.length).map(g => '<div class="sub-h">' + esc(SEC_NAME[g.key] || g.key) + '</div>' + g.items.map(li).join('')).join('') + '</div>';
   }
+  let afPic = '';
+  function showPicPrev(fileImg) {
+    const box = $('afPicPrev'), src = afPic || fileImg;
+    box.innerHTML = src ? '<img src="' + esc(src) + '" alt="">' : esc($('afIcon').value.trim() || '📱');
+    $('afPicDel').hidden = !afPic;
+  }
+  function picToIcon(file) {
+    return new Promise((ok, no) => {
+      const url = URL.createObjectURL(file), im = new Image();
+      im.onload = () => {
+        URL.revokeObjectURL(url);
+        const S = 128, c = document.createElement('canvas'); c.width = S; c.height = S;
+        const g = c.getContext('2d'), side = Math.min(im.naturalWidth, im.naturalHeight);
+        const sx = (im.naturalWidth - side) / 2, sy = (im.naturalHeight - side) / 2;
+        g.imageSmoothingQuality = 'high';
+        g.drawImage(im, sx, sy, side, side, 0, 0, S, S);
+        let d = c.toDataURL('image/webp', 0.86);
+        if (!/^data:image\/webp/.test(d) || d.length > 40000) d = c.toDataURL('image/png');
+        if (d.length > 40000) { g.globalCompositeOperation = 'destination-over'; g.fillStyle = '#fff'; g.fillRect(0, 0, S, S); d = c.toDataURL('image/jpeg', 0.85); }
+        if (d.length > 40000) return no(new Error('그림이 너무 복잡해요. 다른 그림을 골라 주세요'));
+        ok(d);
+      };
+      im.onerror = () => { URL.revokeObjectURL(url); no(new Error('그림 파일을 읽지 못했어요')); };
+      im.src = url;
+    });
+  }
   function afErr(msg) { const e = $('afErr'); e.hidden = !msg; e.textContent = msg || ''; }
   function openAppForm(item, place) {
     appForm = item ? { id: item.id, builtin: inBase(item.id), place } : { id: '', builtin: false, place: 'grow' };
     $('afHead').textContent = item ? '앱 고치기' : '새 앱 추가';
     $('afTitle').value = item ? item.title : ''; $('afDesc').value = item ? (item.desc || '') : '';
-    $('afUrl').value = item ? (item.url || '') : ''; $('afIcon').value = item ? (item.icon || '') : '';
+    $('afUrl').value = item ? (item.url || '') : '';
+    afPic = item && isPic(item.icon) ? item.icon : '';
+    $('afIcon').value = item && !isPic(item.icon) ? (item.icon || '') : '';
+    $('afPicFile').value = ''; showPicPrev(item && !afPic && item.img ? item.img : '');
     $('afSection').value = appForm.place; $('afSection').disabled = false;
     const op = item && item.open && item.open !== '2000-01-01' ? item.open : '', cl = item && item.close ? item.close : '';
     $('afPeriod').checked = !!(op || cl); $('afDates').hidden = !$('afPeriod').checked;
@@ -474,7 +505,7 @@
     const place = $('afSection').value, prev = appForm.id ? findAdminItem(appForm.id) : null;
     const row = {
       id: appForm.id, section: place === 'staff' || place === 'pastor' ? '' : place, target: place === 'staff' || place === 'pastor' ? place : 'all',
-      icon: $('afIcon').value.trim() || '📱', title, desc: $('afDesc').value.trim(), url, open: op, close: cl,
+      icon: afPic || $('afIcon').value.trim() || '📱', title, desc: $('afDesc').value.trim(), url, open: op, close: cl,
       status: prev && prev.a._hidden ? '숨김' : '공개'
     };
     if (prev && (prev.place === 'staff' || prev.place === 'pastor') && row.target === 'all' && !confirm('"' + title + '" 앱이 성도님 모두에게 보이게 돼요. 계속할까요?')) return;
@@ -716,6 +747,13 @@
       location.replace(location.pathname);
     });
     $('appForm').addEventListener('submit', e => { e.preventDefault(); saveAppForm(); });
+    $('afPicFile').addEventListener('change', async () => {
+      const f = $('afPicFile').files && $('afPicFile').files[0]; if (!f) return;
+      try { afPic = await picToIcon(f); afErr(''); showPicPrev(''); } catch (e) { afErr(e.message); }
+      $('afPicFile').value = '';
+    });
+    $('afPicDel').addEventListener('click', () => { afPic = ''; showPicPrev(''); });
+    $('afIcon').addEventListener('input', () => { if (!afPic) showPicPrev(''); });
     $('afClose').addEventListener('click', () => { $('appModal').hidden = true; });
     $('afPeriod').addEventListener('change', () => { $('afDates').hidden = !$('afPeriod').checked; });
     $('afTest').addEventListener('click', () => {

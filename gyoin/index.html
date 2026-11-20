@@ -16,7 +16,7 @@
 /* 화면 모드(자동/라이트/나이트)를 화면이 그려지기 전에 적용 */
 try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}
 </script>
-<link rel="stylesheet" href="app.css?v=11">
+<link rel="stylesheet" href="app.css?v=12">
 </head>
 <body>
 
@@ -221,7 +221,7 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
       <label>짧은 설명<input id="afDesc" maxlength="60" placeholder="예: 솔로몬 성전을 돌려 보며 만나요"></label>
       <label>앱 주소 (https:// 로 시작)<input id="afUrl" type="url" inputmode="url" autocapitalize="off" spellcheck="false" maxlength="490" placeholder="https://"></label>
       <div class="af-row">
-        <label>아이콘 (이모지 하나)<input id="afIcon" maxlength="8" placeholder="📱"></label>
+        <label>아이콘 (이모지 하나)<input id="afIcon" maxlength="16" placeholder="📱"></label>
         <label>들어갈 곳<select id="afSection">
           <option value="worship">예배 · 말씀</option>
           <option value="grow">양육 · 동아리</option>
@@ -229,6 +229,15 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
           <option value="staff">사역자 전용</option>
           <option value="pastor">목회자 전용</option>
         </select></label>
+      </div>
+      <div class="af-pic">
+        <span id="afPicPrev" class="ico-prev" aria-hidden="true">📱</span>
+        <div class="af-pic-tx">
+          <label class="btn" for="afPicFile" style="margin:0">그림으로 아이콘 넣기</label>
+          <input id="afPicFile" type="file" accept="image/*" hidden>
+          <button id="afPicDel" class="btn link" type="button" hidden>그림 빼고 이모지로</button>
+          <div class="muted small">앱 화면을 캡처한 사진이나 로고 그림을 고르면 네모난 아이콘으로 만들어 줘요.</div>
+        </div>
       </div>
       <label class="ck"><input id="afPeriod" type="checkbox"> 보이는 기간을 정할래요 (절기 앱)</label>
       <div id="afDates" class="af-row" hidden>
@@ -246,6 +255,6 @@ try{var t=localStorage.getItem('jjc_theme');if(t==='light'||t==='dark')document.
 
 <script src="config.js?v=11"></script>
 <script src="vendor/html5-qrcode.min.js"></script>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 /* 교인앱 서비스 워커 — 화면을 바꾸면 아래 VERSION 숫자와 index.html의 ?v= 숫자를 같이 올려 주세요(폰의 예전 화면 방지) */
-const VERSION = 'jjc-gyoin-v11';
+const VERSION = 'jjc-gyoin-v12';
 const SHELL = [
-  './', 'index.html', 'app.css?v=11', 'app.js?v=11', 'config.js?v=11', 'apps.json', 'manifest.json',
+  './', 'index.html', 'app.css?v=12', 'app.js?v=12', 'config.js?v=11', 'apps.json', 'manifest.json',
   'vendor/html5-qrcode.min.js', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
 ];
 
